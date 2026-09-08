@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-sidebar: #0f172a;
+  --color-sidebar-hover: #1e293b;
+  --color-content-bg: #f8fafc;
+  --color-card-bg: #ffffff;
+}
+
+/* Utilidades globales del tema */
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-primary:hover { background-color: var(--color-primary-hover) !important; }
+.text-primary { color: var(--color-primary) !important; }
+.border-primary { border-color: var(--color-primary) !important; }
