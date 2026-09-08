@@ -1,0 +1,17 @@
+# Python (Backend)
+venv/
+__pycache__/
+*.pyc
+Backend-Servidor/venv/
+Backend-Servidor/__pycache__/
+Backend-Servidor/uploads/
+
+# Node / React (Frontend)
+node_modules/
+Frontend-Visual/node_modules/
+Frontend-Visual/dist/
+
+# Archivos del sistema y secretos
+.env
+.DS_Store
+*.log
