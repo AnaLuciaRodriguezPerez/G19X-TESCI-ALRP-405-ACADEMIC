@@ -8,7 +8,7 @@ import Configuracion from './pages/Configuracion';
 import Historial from './pages/Historial'; // 👈 1. IMPORTAMOS HISTORIAL
 import Layout from './components/Layout';
 
-// Protege las rutas: si NO hay sesión iniciada, regresa al login
+//funcion para proteger rutas
 function RutaProtegida({ children }) {
   const usuario = localStorage.getItem('usuario');
   return usuario ? children : <Navigate to="/" replace />;
