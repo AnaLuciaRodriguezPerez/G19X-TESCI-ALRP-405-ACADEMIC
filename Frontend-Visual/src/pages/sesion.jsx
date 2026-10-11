@@ -13,14 +13,14 @@ function Login() {
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
-  // ============================================
+
   // FUNCIÓN PARA INICIAR SESIÓN
-  // ============================================
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Validación básica en el frontend
     if (!email || !contrasena) {
       setError('Por favor, completa todos los campos.');
       return;
@@ -29,20 +29,23 @@ function Login() {
     try {
       setCargando(true);
 
-      // Llamada al backend (los datos van como parámetros, igual que tu endpoint)
       const respuesta = await axios.post('http://127.0.0.1:8000/login', null, {
         params: { email, contrasena },
       });
 
-      // Guardamos los datos del usuario en el navegador
+      const datosUsuario = respuesta.data.usuario;
       localStorage.setItem('usuario', JSON.stringify(respuesta.data.usuario));
 
-      // Redirigimos a la pantalla de inicio
+      if (datosUsuario.rol === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/inicio');
+      }
+
       navigate('/inicio');
 
     } catch (err) {
       if (err.response && err.response.data.detail) {
-        // El backend respondió con un error: "Correo no registrado" o "Contraseña incorrecta"
         setError(err.response.data.detail);
       } else {
         setError('No se pudo conectar con el servidor.');
@@ -55,7 +58,6 @@ function Login() {
   return (
     <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900">
 
-      {/* ================= LADO IZQUIERDO ================= */}
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 relative overflow-hidden flex-col justify-between p-16 text-white">
         
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
@@ -94,7 +96,8 @@ function Login() {
         </div>
       </div>
 
-      {/* ================= LADO DERECHO ================= */}
+
+
       <div className="w-full md:w-1/2 flex items-center justify-center p-8 md:p-16">
         <div className="w-full max-w-md">
 
@@ -107,7 +110,6 @@ function Login() {
 
           <form className="space-y-5" onSubmit={handleSubmit}>
             
-            {/* Correo */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Correo
@@ -126,7 +128,6 @@ function Login() {
               </div>
             </div>
 
-            {/* Contraseña */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Contraseña
@@ -152,21 +153,39 @@ function Login() {
               </div>
             </div>
 
-            {/* Mensaje de error */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-bold text-center">
                 {error}
               </div>
             )}
 
-            {/* Olvidé contraseña */}
+            {error.includes('verificar') && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const r = await axios.post('http://127.0.0.1:8000/reenviar-verificacion', { email });
+                    alert(r.data.mensaje);
+                  } catch (err) {
+                    alert('No se pudo reenviar el correo.');
+                  }
+                }}
+                className="text-sm text-blue-600 font-semibold hover:underline"
+              >
+                Reenviar correo de verificación
+              </button>
+            )}
+
             <div className="flex justify-end">
-              <a href="#" className="text-sm text-blue-600 font-semibold hover:underline">
+              <button
+                type="button"
+                onClick={() => navigate('/olvide-contrasena')}
+                className="text-sm text-blue-600 font-semibold hover:underline"
+              >
                 ¿Olvidaste tu contraseña?
-              </a>
+              </button>
             </div>
 
-            {/* Botón Entrar */}
             <button
               type="submit"
               disabled={cargando}
@@ -176,7 +195,6 @@ function Login() {
               {!cargando && <ArrowRight size={20} />}
             </button>
 
-            {/* Botón Registrar */}
             <button
               type="button"
               onClick={() => navigate('/registro')}
