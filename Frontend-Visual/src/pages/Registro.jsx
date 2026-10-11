@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, Check, X } from 'lucide-react';
 
 import logo from '../assets/logo.png';
 
@@ -25,35 +25,57 @@ function Registro() {
   const [cargando, setCargando] = useState(false);
   const [mostrarModalExito, setMostrarModalExito] = useState(false); // Modal de éxito
 
-  // ============================================
+
+  // 👇 NUEVO: REQUISITOS DE CONTRASEÑA SEGURA
+
+
+  const requisitos = [
+    { texto: 'Mínimo 8 caracteres', cumple: contrasena.length >= 8 },
+    { texto: 'Una letra mayúscula (A-Z)', cumple: /[A-Z]/.test(contrasena) },
+    { texto: 'Una letra minúscula (a-z)', cumple: /[a-z]/.test(contrasena) },
+    { texto: 'Un número (0-9)', cumple: /[0-9]/.test(contrasena) },
+    { texto: 'Un carácter especial (!@#$%...)', cumple: /[^A-Za-z0-9]/.test(contrasena) },
+  ];
+
+  const contrasenaValida = requisitos.every((req) => req.cumple);
+
+  const requisitosCumplidos = requisitos.filter((req) => req.cumple).length;
+
+  const fortaleza = () => {
+    if (contrasena.length === 0) return { texto: '', color: '', ancho: '0%' };
+    if (requisitosCumplidos <= 2) return { texto: 'Débil', color: 'bg-red-500', ancho: '33%' };
+    if (requisitosCumplidos <= 4) return { texto: 'Media', color: 'bg-yellow-500', ancho: '66%' };
+    return { texto: 'Fuerte', color: 'bg-green-500', ancho: '100%' };
+  };
+
+  const nivelFortaleza = fortaleza();
+
+
   // FUNCIÓN PARA REGISTRAR USUARIO
-  // ============================================
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // 1. Validar campos vacíos
     if (!nombre || !apellidoPaterno || !email || !contrasena || !confirmarContrasena) {
       setError('Por favor, completa todos los campos obligatorios.');
       return;
     }
 
-    // 2. Validar que las contraseñas coincidan
     if (contrasena !== confirmarContrasena) {
       setError('Las contraseñas no coinciden.');
       return;
     }
 
-    // 3. Validar longitud mínima de contraseña
-    if (contrasena.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
+    if (!contrasenaValida) {
+      setError('La contraseña no cumple los requisitos de seguridad. Revisa la lista debajo del campo.');
       return;
     }
 
     try {
       setCargando(true);
 
-      // 4. Enviar datos al backend (se guardan en PostgreSQL)
       await axios.post('http://127.0.0.1:8000/registro', null, {
         params: {
           nombre,
@@ -64,7 +86,6 @@ function Registro() {
         },
       });
 
-      // 5. Mostrar modal de éxito
       setMostrarModalExito(true);
 
     } catch (err) {
@@ -78,16 +99,14 @@ function Registro() {
     }
   };
 
-  // Función al dar clic en "Aceptar" dentro del modal
   const handleAceptarExito = () => {
     setMostrarModalExito(false);
-    navigate('/'); // Redirige al login
+    navigate('/'); 
   };
 
   return (
     <div className="flex h-screen w-full bg-slate-50 font-sans text-slate-900 relative">
 
-      {/* ================= LADO IZQUIERDO ================= */}
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 relative overflow-hidden flex-col justify-between p-16 text-white">
         
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
@@ -126,7 +145,6 @@ function Registro() {
         </div>
       </div>
 
-      {/* ================= LADO DERECHO: FORMULARIO ================= */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-6 md:p-12 overflow-y-auto">
         <div className="w-full max-w-lg">
 
@@ -141,7 +159,6 @@ function Registro() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
 
-            {/* NOMBRE */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Nombre
@@ -160,7 +177,6 @@ function Registro() {
               </div>
             </div>
 
-            {/* APELLIDOS (2 columnas) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">
@@ -189,7 +205,6 @@ function Registro() {
               </div>
             </div>
 
-            {/* CORREO */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Correo Electrónico
@@ -208,7 +223,6 @@ function Registro() {
               </div>
             </div>
 
-            {/* CONTRASEÑA */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Contraseña
@@ -219,7 +233,7 @@ function Registro() {
                 </div>
                 <input
                   type={showPass ? 'text' : 'password'}
-                  placeholder="Crea una contraseña"
+                  placeholder="Crea una contraseña segura"
                   value={contrasena}
                   onChange={(e) => setContrasena(e.target.value)}
                   className="w-full pl-11 pr-12 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-600 transition-all shadow-sm"
@@ -232,9 +246,59 @@ function Registro() {
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+
+              {contrasena.length > 0 && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-500">
+                      Seguridad de la contraseña
+                    </span>
+                    <span
+                      className={`text-xs font-black ${
+                        nivelFortaleza.texto === 'Fuerte'
+                          ? 'text-green-600'
+                          : nivelFortaleza.texto === 'Media'
+                          ? 'text-yellow-600'
+                          : 'text-red-500'
+                      }`}
+                    >
+                      {nivelFortaleza.texto}
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${nivelFortaleza.color} transition-all duration-300 rounded-full`}
+                      style={{ width: nivelFortaleza.ancho }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                <p className="text-xs font-bold text-slate-600 mb-2">
+                  Tu contraseña debe contener:
+                </p>
+                <ul className="space-y-1">
+                  {requisitos.map((req, index) => (
+                    <li
+                      key={index}
+                      className={`flex items-center gap-2 text-xs font-semibold transition-colors ${
+                        req.cumple ? 'text-green-600' : 'text-slate-400'
+                      }`}
+                    >
+
+                      {req.cumple ? (
+                        <Check size={14} className="shrink-0" />
+                      ) : (
+                        <X size={14} className="shrink-0" />
+                      )}
+                      {req.texto}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
-            {/* CONFIRMAR CONTRASEÑA */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Confirmar Contraseña
@@ -258,16 +322,26 @@ function Registro() {
                   {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+
+              {confirmarContrasena.length > 0 && contrasena !== confirmarContrasena && (
+                <p className="mt-1.5 text-xs font-semibold text-red-500 flex items-center gap-1.5">
+                  <X size={14} /> Las contraseñas no coinciden
+                </p>
+              )}
+
+              {confirmarContrasena.length > 0 && contrasena === confirmarContrasena && (
+                <p className="mt-1.5 text-xs font-semibold text-green-600 flex items-center gap-1.5">
+                  <Check size={14} /> Las contraseñas coinciden
+                </p>
+              )}
             </div>
 
-            {/* MENSAJE DE ERROR */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-bold text-center">
                 {error}
               </div>
             )}
 
-            {/* BOTÓN REGISTRAR */}
             <button
               type="submit"
               disabled={cargando}
@@ -278,7 +352,6 @@ function Registro() {
             </button>
           </form>
 
-          {/* Volver a login */}
           <div className="mt-6 text-center">
             <p className="text-slate-500 text-sm">
               ¿Ya tienes cuenta?{' '}
@@ -291,35 +364,36 @@ function Registro() {
         </div>
       </div>
 
-      {/* ============================================ */}
-      {/* MODAL DE ÉXITO AL REGISTRAR */}
-      {/* ============================================ */}
       {mostrarModalExito && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           
-          {/* Fondo obscuro */}
           <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"></div>
 
-          {/* Tarjeta emergente */}
           <div className="relative bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 text-slate-900 animate-in fade-in zoom-in duration-200">
             <div className="flex flex-col items-center text-center">
 
-              {/* Icono de éxito */}
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-5">
                 <CheckCircle size={36} className="text-green-600" />
               </div>
 
               <h3 className="text-2xl font-black mb-2">¡Cuenta creada!</h3>
-              <p className="text-slate-500 mb-8 leading-relaxed">
-                Tu usuario ha sido registrado exitosamente en el sistema. Ya puedes iniciar sesión.
+              
+              <p className="text-slate-500 mb-6 leading-relaxed">
+                Te hemos enviado un correo de verificación a{' '}
+                <span className="font-bold text-slate-700">{email}</span>
               </p>
 
-              {/* Botón Aceptar */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8 text-left">
+                <p className="text-sm text-blue-800">
+                  <span className="font-bold">Importante:</span> Revisa tu bandeja de entrada y también la carpeta de <span className="font-semibold">Spam</span> o <span className="font-semibold">Correo no deseado</span>. Haz clic en el enlace para activar tu cuenta.
+                </p>
+              </div>
+
               <button
                 onClick={handleAceptarExito}
                 className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/25 transition-all text-lg"
               >
-                Aceptar
+                Entendido, ir al login
               </button>
 
             </div>
