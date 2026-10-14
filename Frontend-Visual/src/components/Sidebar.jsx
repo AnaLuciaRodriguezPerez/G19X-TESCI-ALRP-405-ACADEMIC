@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, FileText, Settings, LogOut, User, History } from 'lucide-react';
+import { Home, FileText, Settings, LogOut, User, History, Users, BarChart, Scale } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
 import { useTema } from '../context/TemaContext';
@@ -11,6 +11,7 @@ function Sidebar() {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
 
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
+  const esAdmin = usuario.rol === 'admin';
 
   const confirmarCerrarSesion = () => {
     localStorage.removeItem('usuario');
@@ -26,7 +27,7 @@ function Sidebar() {
       style={{ backgroundColor: 'var(--color-sidebar)' }}
     >
       <div>
-        {/* Logo */}
+
         <div className="p-8 flex flex-col items-center border-b border-white/10">
           <div
             className="bg-white rounded-full mb-4 shadow-lg overflow-hidden w-24 h-24 flex items-center justify-center border-4"
@@ -35,11 +36,17 @@ function Sidebar() {
             <img src={logo} alt="Logo DocuVerify" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-bold tracking-wider">DocuVerify</h1>
-          <p className="text-center text-sm mt-3 leading-relaxed text-white/60">
-            Sistema de Validación Documental<br />Basado en Reglas Jurídicas
-          </p>
+          
+          {esAdmin ? (
+            <span className="mt-2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg">
+              Administrador
+            </span>
+          ) : (
+            <p className="text-center text-sm mt-3 leading-relaxed text-white/60">
+              Sistema de Validación Documental
+            </p>
+          )}
 
-          {/* Mini perfil */}
           {usuario?.nombre && (
             <div className="mt-5 flex items-center gap-3 w-full px-3 py-2.5 rounded-xl bg-white/10">
               <div
@@ -62,61 +69,97 @@ function Sidebar() {
           )}
         </div>
 
-        {/* Navegación */}
         <nav className="mt-6 flex flex-col gap-2 px-4">
-          <Link to="/inicio">
-            <button
-              className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${
-                esActivo('/inicio') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-              style={esActivo('/inicio') ? { backgroundColor: 'var(--color-primary)' } : {}}
-            >
-              <Home size={24} />
-              <span className="font-semibold text-lg">Inicio</span>
-            </button>
-          </Link>
+          
+          {esAdmin ? (
+            <>
+              <Link to="/admin/dashboard">
+                <button
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${esActivo('/admin/dashboard') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                  style={esActivo('/admin/dashboard') ? { backgroundColor: 'var(--color-primary)' } : {}}
+                >
+                  <BarChart size={24} />
+                  <span className="font-semibold text-lg">Panel General</span>
+                </button>
+              </Link>
 
-          <Link to="/acuerdo-confidencialidad">
-            <button
-              className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${
-                esActivo('/acuerdo-confidencialidad')
-                  ? 'text-white shadow-lg'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-              style={esActivo('/acuerdo-confidencialidad') ? { backgroundColor: 'var(--color-primary)' } : {}}
-            >
-              <FileText size={24} />
-              <span className="font-semibold text-lg text-left leading-tight">
-                Acuerdo de<br />confidencialidad
-              </span>
-            </button>
-          </Link>
+              <Link to="/admin/usuarios">
+                <button
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${esActivo('/admin/usuarios') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                  style={esActivo('/admin/usuarios') ? { backgroundColor: 'var(--color-primary)' } : {}}
+                >
+                  <Users size={24} />
+                  <span className="font-semibold text-lg">Gestión de Usuarios</span>
+                </button>
+              </Link>
 
-          {/* 👇 NUEVO: Historial */}
-          <Link to="/historial">
-            <button
-              className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${
-                esActivo('/historial')
-                  ? 'text-white shadow-lg'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
-              }`}
-              style={esActivo('/historial') ? { backgroundColor: 'var(--color-primary)' } : {}}
-            >
-              <History size={24} />
-              <span className="font-semibold text-lg">Historial</span>
-            </button>
-          </Link>
+              <Link to="/admin/historial">
+                <button
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${esActivo('/admin/historial') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                  style={esActivo('/admin/historial') ? { backgroundColor: 'var(--color-primary)' } : {}}
+                >
+                  <FileText size={24} />
+                  <span className="font-semibold text-lg">Historial Global</span>
+                </button>
+              </Link>
+
+              <Link to="/admin/reglas">
+                <button
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${esActivo('/admin/reglas') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                  style={esActivo('/admin/reglas') ? { backgroundColor: 'var(--color-primary)' } : {}}
+                >
+                  <Scale size={24} />
+                  <span className="font-semibold text-lg">Gestión de Reglas</span>
+                </button>
+              </Link>
+
+
+
+            </>
+          ) : (
+            
+            <>
+              <Link to="/inicio">
+                <button
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${esActivo('/inicio') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                  style={esActivo('/inicio') ? { backgroundColor: 'var(--color-primary)' } : {}}
+                >
+                  <Home size={24} />
+                  <span className="font-semibold text-lg">Inicio</span>
+                </button>
+              </Link>
+
+              <Link to="/acuerdo-confidencialidad">
+                <button
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${esActivo('/acuerdo-confidencialidad') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                  style={esActivo('/acuerdo-confidencialidad') ? { backgroundColor: 'var(--color-primary)' } : {}}
+                >
+                  <FileText size={24} />
+                  <span className="font-semibold text-lg text-left leading-tight">
+                    Acuerdo de<br />confidencialidad
+                  </span>
+                </button>
+              </Link>
+
+              <Link to="/historial">
+                <button
+                  className={`flex items-center gap-4 px-4 py-3 rounded-lg transition-all w-full ${esActivo('/historial') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                  style={esActivo('/historial') ? { backgroundColor: 'var(--color-primary)' } : {}}
+                >
+                  <History size={24} />
+                  <span className="font-semibold text-lg">Historial</span>
+                </button>
+              </Link>
+            </>
+          )}
         </nav>
       </div>
 
-      {/* Abajo */}
       <div className="p-4 border-t border-white/10 flex flex-col gap-2">
         <Link to="/configuracion">
           <button
             className={`flex items-center gap-4 px-4 py-3 w-full rounded-lg transition-all ${
-              esActivo('/configuracion')
-                ? 'text-white shadow-lg'
-                : 'text-white/70 hover:text-white hover:bg-white/10'
+              esActivo('/configuracion') ? 'text-white shadow-lg' : 'text-white/70 hover:text-white hover:bg-white/10'
             }`}
             style={esActivo('/configuracion') ? { backgroundColor: 'var(--color-primary)' } : {}}
           >
@@ -134,36 +177,21 @@ function Sidebar() {
         </button>
       </div>
 
-      {/* Modal cerrar sesión */}
       {mostrarConfirmacion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setMostrarConfirmacion(false)}
-          />
-          <div
-            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
-            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
-          >
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMostrarConfirmacion(false)} />
+          <div className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4" style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}>
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-5">
                 <LogOut size={30} className="text-red-600" />
               </div>
               <h3 className="text-2xl font-black mb-2">¿Cerrar sesión?</h3>
-              <p className="mb-8 leading-relaxed opacity-70">
-                ¿Estás seguro de que deseas salir de DocuVerify?
-              </p>
+              <p className="mb-8 leading-relaxed opacity-70">¿Estás seguro de que deseas salir de DocuVerify?</p>
               <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setMostrarConfirmacion(false)}
-                  className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity"
-                >
+                <button onClick={() => setMostrarConfirmacion(false)} className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity">
                   Cancelar
                 </button>
-                <button
-                  onClick={confirmarCerrarSesion}
-                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl"
-                >
+                <button onClick={confirmarCerrarSesion} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl">
                   Sí, cerrar sesión
                 </button>
               </div>

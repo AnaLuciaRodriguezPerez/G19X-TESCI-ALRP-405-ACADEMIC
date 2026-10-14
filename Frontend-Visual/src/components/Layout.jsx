@@ -9,7 +9,10 @@ function Layout() {
       style={{ backgroundColor: 'var(--color-content-bg)' }}
     >
       <Sidebar />
-      <Outlet />
+      
+      <main className="flex-1 h-screen overflow-y-auto">
+        <Outlet />
+      </main>
     </div>
   );
 }
