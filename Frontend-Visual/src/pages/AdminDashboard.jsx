@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, FileText, CheckCircle, Scale, Activity } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
+import PageHeader from '../components/PageHeader';
 
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, LineElement, PointElement, Filler
@@ -34,7 +35,8 @@ function AdminDashboard() {
   const textColor = modoOscuro ? '#cbd5e1' : '#475569';
   const gridColor = modoOscuro ? '#334155' : '#e2e8f0';
 
-  // 1. DONA: Cuentas
+  // grafica de Cuentas
+
   const datosDona = {
     labels: ['Verificadas', 'Pendientes'],
     datasets: [{
@@ -44,7 +46,8 @@ function AdminDashboard() {
     }],
   };
 
-  // 2. LÍNEA: Análisis mensual
+  // grafica de análisis
+
   const datosLinea = {
     labels: estadisticas?.grafico_meses || [],
     datasets: [{
@@ -53,27 +56,29 @@ function AdminDashboard() {
       borderColor: '#3b82f6',
       backgroundColor: 'rgba(59, 130, 246, 0.2)',
       fill: true,
-      tension: 0.4, // Curvas suaves
+      tension: 0.4,
     }],
   };
 
-  // 3. PASTEL: Nivel de Riesgo
+  // grafica de nivel de riesgo
+
   const datosPastel = {
     labels: estadisticas?.grafico_riesgos_labels || [],
     datasets: [{
       data: estadisticas?.grafico_riesgos_valores || [],
-      backgroundColor: ['#22c55e', '#eab308', '#ef4444', '#94a3b8'], // Verde, Amarillo, Rojo, Gris
+      backgroundColor: ['#22c55e', '#eab308', '#ef4444', '#94a3b8'],
       borderWidth: 0,
     }],
   };
 
-  // 4. BARRAS HORIZONTALES: Cláusulas faltantes
+  // graficas de cláusulas faltantes
+
   const datosBarras = {
     labels: estadisticas?.grafico_clausulas_labels || [],
     datasets: [{
       label: 'Veces ausente',
       data: estadisticas?.grafico_clausulas_valores || [],
-      backgroundColor: '#f97316', // Naranja
+      backgroundColor: '#f97316',
       borderRadius: 6,
     }],
   };
@@ -84,75 +89,76 @@ function AdminDashboard() {
   };
 
   return (
-    <div className={`p-8 w-full min-h-screen ${modoOscuro ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`flex-1 flex flex-col overflow-y-auto transition-colors duration-300 ${modoOscuro ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
-      <h1 className="text-3xl font-black mb-2">Panel General</h1>
-      <p className={`mb-8 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>Métricas avanzadas de IA y Plataforma.</p>
+      <PageHeader
+        titulo="Panel General"
+        subtitulo="Métricas avanzadas de IA y Plataforma."
+      />
 
-      {/* TARJETAS SUPERIORES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-blue-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>TOTAL USUARIOS</p>
-          <div className="flex justify-between items-center">
-            <h3 className="text-4xl font-black">{estadisticas?.total_usuarios}</h3>
-            <Users size={28} className="text-blue-500" />
-          </div>
-        </div>
-        <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-green-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>CUENTAS ACTIVAS</p>
-          <div className="flex justify-between items-center">
-            <h3 className="text-4xl font-black">{estadisticas?.usuarios_verificados}</h3>
-            <CheckCircle size={28} className="text-green-500" />
-          </div>
-        </div>
-        <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>DOCS. ANALIZADOS</p>
-          <div className="flex justify-between items-center">
-            <h3 className="text-4xl font-black">{estadisticas?.total_analisis}</h3>
-            <FileText size={28} className="text-purple-500" />
-          </div>
-        </div>
-        <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-orange-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>REGLAS I.A.</p>
-          <div className="flex justify-between items-center">
-            <h3 className="text-4xl font-black">{estadisticas?.total_reglas}</h3>
-            <Scale size={28} className="text-orange-500" />
-          </div>
-        </div>
-      </div>
+      <main className="p-10 pt-0 w-full flex flex-col gap-6">
 
-      {/* FILA 1 DE GRÁFICAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className={`p-6 rounded-2xl shadow-lg ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <h3 className="text-lg font-bold mb-4">Estado de Usuarios</h3>
-          <div className="h-64"><Doughnut data={datosDona} options={{...opcionesBase, cutout: '70%'}} /></div>
-        </div>
-        <div className={`p-6 rounded-2xl shadow-lg lg:col-span-2 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <h3 className="text-lg font-bold mb-4">Crecimiento de Análisis (Anual)</h3>
-          <div className="h-64">
-            <Line data={datosLinea} options={{...opcionesBase, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } }, x: { grid: { display: false }, ticks: { color: textColor } } } }} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-blue-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>TOTAL USUARIOS</p>
+            <div className="flex justify-between items-center">
+              <h3 className="text-4xl font-black">{estadisticas?.total_usuarios}</h3>
+              <Users size={28} className="text-blue-500" />
+            </div>
+          </div>
+          <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-green-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>CUENTAS ACTIVAS</p>
+            <div className="flex justify-between items-center">
+              <h3 className="text-4xl font-black">{estadisticas?.usuarios_verificados}</h3>
+              <CheckCircle size={28} className="text-green-500" />
+            </div>
+          </div>
+          <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-purple-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>DOCS. ANALIZADOS</p>
+            <div className="flex justify-between items-center">
+              <h3 className="text-4xl font-black">{estadisticas?.total_analisis}</h3>
+              <FileText size={28} className="text-purple-500" />
+            </div>
+          </div>
+          <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-orange-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>REGLAS I.A.</p>
+            <div className="flex justify-between items-center">
+              <h3 className="text-4xl font-black">{estadisticas?.total_reglas}</h3>
+              <Scale size={28} className="text-orange-500" />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* FILA 2 DE GRÁFICAS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={`p-6 rounded-2xl shadow-lg ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <h3 className="text-lg font-bold mb-4">Diagnóstico General (Riesgo)</h3>
-          <div className="h-64"><Pie data={datosPastel} options={opcionesBase} /></div>
-        </div>
-        <div className={`p-6 rounded-2xl shadow-lg lg:col-span-2 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-          <h3 className="text-lg font-bold mb-4">Top 5 Cláusulas Faltantes (Problemas Frecuentes)</h3>
-          <div className="h-64 flex flex-col justify-center">
-            {estadisticas?.grafico_clausulas_labels?.length > 0 ? (
-              <Bar data={datosBarras} options={{...opcionesBase, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } }, y: { grid: { display: false }, ticks: { color: textColor } } } }} />
-            ) : (
-              <p className="text-center text-slate-500 italic">Aún no hay suficientes datos de IA.</p>
-            )}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className={`p-6 rounded-2xl shadow-lg ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <h3 className="text-lg font-bold mb-4">Estado de Usuarios</h3>
+            <div className="h-64"><Doughnut data={datosDona} options={{...opcionesBase, cutout: '70%'}} /></div>
+          </div>
+          <div className={`p-6 rounded-2xl shadow-lg lg:col-span-2 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <h3 className="text-lg font-bold mb-4">Crecimiento de Análisis (Anual)</h3>
+            <div className="h-64">
+              <Line data={datosLinea} options={{...opcionesBase, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } }, x: { grid: { display: false }, ticks: { color: textColor } } } }} />
+            </div>
           </div>
         </div>
-      </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className={`p-6 rounded-2xl shadow-lg ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <h3 className="text-lg font-bold mb-4">Diagnóstico General (Riesgo)</h3>
+            <div className="h-64"><Pie data={datosPastel} options={opcionesBase} /></div>
+          </div>
+          <div className={`p-6 rounded-2xl shadow-lg lg:col-span-2 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+            <h3 className="text-lg font-bold mb-4">Top 5 Cláusulas Faltantes (Problemas Frecuentes)</h3>
+            <div className="h-64 flex flex-col justify-center">
+              {estadisticas?.grafico_clausulas_labels?.length > 0 ? (
+                <Bar data={datosBarras} options={{...opcionesBase, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } }, y: { grid: { display: false }, ticks: { color: textColor } } } }} />
+              ) : (
+                <p className="text-center text-slate-500 italic">Aún no hay suficientes datos de IA.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
