@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Scale, Plus, Edit, Trash2, Check, X, Activity } from 'lucide-react';
+import { Scale, Plus, Edit, Trash2, Check, Activity, FilePlus } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
 
@@ -9,17 +9,27 @@ function AdminReglas() {
   const [reglas, setReglas] = useState([]);
   const [tipoSeleccionado, setTipoSeleccionado] = useState(null);
   const [cargando, setCargando] = useState(true);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  
+  // Modales
+  const [mostrarFormularioRegla, setMostrarFormularioRegla] = useState(false);
+  const [mostrarFormularioTipo, setMostrarFormularioTipo] = useState(false);
   const [editandoRegla, setEditandoRegla] = useState(null);
+  
   const { modoOscuro } = useTema();
-
   const miUsuario = JSON.parse(localStorage.getItem('usuario') || '{}');
 
-  const [formData, setFormData] = useState({
+  // Estado formulario de REGLAS
+  const [formDataRegla, setFormDataRegla] = useState({
     nombre_clausula: '',
     criterio_evaluacion: '',
     es_obligatoria: true,
     tipo_documento_id: ''
+  });
+
+  // Estado formulario de NUEVO TIPO DE DOCUMENTO
+  const [formDataTipo, setFormDataTipo] = useState({
+    nombre: '',
+    descripcion: ''
   });
 
   const cargarDatos = async () => {
@@ -31,12 +41,13 @@ function AdminReglas() {
       setTiposDocumento(resTipos.data);
       
       if (resTipos.data.length > 0) {
-        const primerTipo = resTipos.data[0].id;
-        setTipoSeleccionado(primerTipo);
-        setFormData(prev => ({ ...prev, tipo_documento_id: primerTipo }));
+        const idInicial = tipoSeleccionado || resTipos.data[0].id;
+        setTipoSeleccionado(idInicial);
+        setFormDataRegla(prev => ({ ...prev, tipo_documento_id: idInicial }));
+        await cargarReglas(idInicial);
+      } else {
+        setReglas([]);
       }
-
-      await cargarReglas(resTipos.data[0]?.id);
     } catch (err) {
       console.error('Error al cargar datos', err);
     } finally {
@@ -61,20 +72,25 @@ function AdminReglas() {
   }, [miUsuario.id]);
 
   useEffect(() => {
-    if (tipoSeleccionado) cargarReglas(tipoSeleccionado);
+    if (tipoSeleccionado) {
+      cargarReglas(tipoSeleccionado);
+      setFormDataRegla(prev => ({ ...prev, tipo_documento_id: tipoSeleccionado }));
+    }
   }, [tipoSeleccionado]);
 
-  const handleSubmit = async (e) => {
+  // -----------------------------------------------------
+  // GUARDAR / EDITAR REGLA JURÍDICA
+  // -----------------------------------------------------
+  const handleSubmitRegla = async (e) => {
     e.preventDefault();
-    
     try {
       if (editandoRegla) {
         await axios.put(`http://127.0.0.1:8000/api/admin/reglas/${editandoRegla.id}`, null, {
           params: {
             admin_id: miUsuario.id,
-            nombre_clausula: formData.nombre_clausula,
-            criterio_evaluacion: formData.criterio_evaluacion,
-            es_obligatoria: formData.es_obligatoria
+            nombre_clausula: formDataRegla.nombre_clausula,
+            criterio_evaluacion: formDataRegla.criterio_evaluacion,
+            es_obligatoria: formDataRegla.es_obligatoria
           }
         });
         alert('Regla actualizada correctamente');
@@ -82,38 +98,62 @@ function AdminReglas() {
         await axios.post('http://127.0.0.1:8000/api/admin/reglas', null, {
           params: {
             admin_id: miUsuario.id,
-            tipo_documento_id: tipoSeleccionado,
-            nombre_clausula: formData.nombre_clausula,
-            criterio_evaluacion: formData.criterio_evaluacion,
-            es_obligatoria: formData.es_obligatoria
+            tipo_documento_id: formDataRegla.tipo_documento_id || tipoSeleccionado,
+            nombre_clausula: formDataRegla.nombre_clausula,
+            criterio_evaluacion: formDataRegla.criterio_evaluacion,
+            es_obligatoria: formDataRegla.es_obligatoria
           }
         });
         alert('Regla creada correctamente');
       }
       
-      setFormData({ nombre_clausula: '', criterio_evaluacion: '', es_obligatoria: true, tipo_documento_id: tipoSeleccionado || '' });
-      setMostrarFormulario(false);
-      setEditandoRegla(null);
+      cancelarEdicionRegla();
       cargarReglas(tipoSeleccionado);
     } catch (err) {
       alert(err.response?.data?.detail || 'Error al guardar la regla');
     }
   };
 
+  // -----------------------------------------------------
+  // GUARDAR NUEVO TIPO DE DOCUMENTO
+  // -----------------------------------------------------
+  const handleSubmitTipo = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('http://127.0.0.1:8000/api/admin/tipos-documento', null, {
+        params: {
+          admin_id: miUsuario.id,
+          nombre: formDataTipo.nombre,
+          descripcion: formDataTipo.descripcion
+        }
+      });
+      alert('Tipo de documento registrado exitosamente');
+      setFormDataTipo({ nombre: '', descripcion: '' });
+      setMostrarFormularioTipo(false);
+      
+      // Recargar la lista y seleccionar el nuevo
+      await cargarDatos();
+      if (res.data?.id) {
+        setTipoSeleccionado(res.data.id);
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al registrar el tipo de documento');
+    }
+  };
+
   const editarRegla = (regla) => {
-    setFormData({
+    setFormDataRegla({
       nombre_clausula: regla.nombre_clausula,
       criterio_evaluacion: regla.criterio_evaluacion,
       es_obligatoria: regla.es_obligatoria,
       tipo_documento_id: regla.tipo_documento_id
     });
     setEditandoRegla(regla);
-    setMostrarFormulario(true);
+    setMostrarFormularioRegla(true);
   };
 
   const eliminarRegla = async (id) => {
     if (!window.confirm('¿Seguro que deseas eliminar esta regla jurídica?')) return;
-    
     try {
       await axios.delete(`http://127.0.0.1:8000/api/admin/reglas/${id}`, {
         params: { admin_id: miUsuario.id }
@@ -125,10 +165,20 @@ function AdminReglas() {
     }
   };
 
-  const cancelarEdicion = () => {
-    setFormData({ nombre_clausula: '', criterio_evaluacion: '', es_obligatoria: true, tipo_documento_id: tipoSeleccionado || '' });
+  const cancelarEdicionRegla = () => {
+    setFormDataRegla({
+      nombre_clausula: '',
+      criterio_evaluacion: '',
+      es_obligatoria: true,
+      tipo_documento_id: tipoSeleccionado || ''
+    });
     setEditandoRegla(null);
-    setMostrarFormulario(false);
+    setMostrarFormularioRegla(false);
+  };
+
+  const obtenerNombreTipo = (tipoId) => {
+    const t = tiposDocumento.find(item => item.id === tipoId);
+    return t ? t.nombre : `ID: ${tipoId}`;
   };
 
   if (cargando) {
@@ -147,51 +197,138 @@ function AdminReglas() {
       
       <PageHeader
         titulo="Gestión de Reglas Jurídicas"
-        subtitulo="Administra las reglas que usa la IA para validar documentos."
+        subtitulo="Administra los tipos de documento y las reglas que usa la IA para validarlos."
       />
 
       {/* CONTENIDO */}
       <main className="p-10 pt-0 w-full flex flex-col gap-8">
-        {/* Botón + Selector */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            {tiposDocumento.length > 1 && (
-              <div>
-                <label className={`block text-sm font-semibold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
-                  Filtrar por tipo de documento:
-                </label>
-                <select
-                  value={tipoSeleccionado || ''}
-                  onChange={(e) => setTipoSeleccionado(Number(e.target.value))}
-                  className={`px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${modoOscuro ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300'}`}
-                >
-                  {tiposDocumento.map(t => (
-                    <option key={t.id} value={t.id}>{t.nombre}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+        
+        {/* BARRA SUPERIOR: Selector + Botones de Acción */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          
+          {/* Selector de Tipo de Documento */}
+          <div className="w-full lg:w-auto">
+            <label className={`block text-sm font-semibold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
+              Tipo de documento a consultar:
+            </label>
+            <select
+              value={tipoSeleccionado || ''}
+              onChange={(e) => setTipoSeleccionado(Number(e.target.value))}
+              className={`w-full lg:w-80 px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none transition-colors font-semibold ${modoOscuro ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+            >
+              {tiposDocumento.map(t => (
+                <option key={t.id} value={t.id}>{t.nombre}</option>
+              ))}
+            </select>
           </div>
           
-          <button
-            onClick={() => { setMostrarFormulario(true); setEditandoRegla(null); }}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-lg"
-          >
-            <Plus size={20} />
-            Nueva Regla
-          </button>
+          {/* Botones */}
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <button
+              onClick={() => setMostrarFormularioTipo(true)}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-md"
+            >
+              <FilePlus size={20} />
+              Nuevo Tipo de Documento
+            </button>
+
+            <button
+              onClick={() => { setMostrarFormularioRegla(true); setEditandoRegla(null); }}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md"
+            >
+              <Plus size={20} />
+              Nueva Regla
+            </button>
+          </div>
         </div>
 
-        {/* Formulario (Modal) */}
-        {mostrarFormulario && (
+        {/* MODAL 1: REGISTRAR NUEVO TIPO DE DOCUMENTO */}
+        {mostrarFormularioTipo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={cancelarEdicion} />
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMostrarFormularioTipo(false)} />
+            <div className={`relative rounded-2xl shadow-2xl p-8 w-full max-w-lg ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+              <h2 className="text-2xl font-black mb-6 flex items-center gap-2">
+                <FilePlus className="text-emerald-500" />
+                Nuevo Tipo de Documento
+              </h2>
+              
+              <form onSubmit={handleSubmitTipo} className="space-y-5">
+                <div>
+                  <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Nombre del Documento *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formDataTipo.nombre}
+                    onChange={(e) => setFormDataTipo({...formDataTipo, nombre: e.target.value})}
+                    placeholder="Ej: Contrato de Arrendamiento"
+                    className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-emerald-500 outline-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
+                    Descripción
+                  </label>
+                  <textarea
+                    rows="3"
+                    value={formDataTipo.descripcion}
+                    onChange={(e) => setFormDataTipo({...formDataTipo, descripcion: e.target.value})}
+                    placeholder="Breve descripción de este tipo de documento legal..."
+                    className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-emerald-500 outline-none resize-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setMostrarFormularioTipo(false)}
+                    className={`flex-1 py-3 font-bold rounded-xl transition-colors ${modoOscuro ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
+                  >
+                    Registrar Tipo
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 2: CREAR / EDITAR REGLA JURÍDICA */}
+        {mostrarFormularioRegla && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={cancelarEdicionRegla} />
             <div className={`relative rounded-2xl shadow-2xl p-8 w-full max-w-2xl ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
               <h2 className="text-2xl font-black mb-6">
                 {editandoRegla ? 'Editar Regla Jurídica' : 'Nueva Regla Jurídica'}
               </h2>
               
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmitRegla} className="space-y-5">
+                
+                {/* SELECTOR DE TIPO DENTRO DEL FORMULARIO */}
+                {!editandoRegla && (
+                  <div>
+                    <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
+                      ¿A qué tipo de documento pertenece esta regla? *
+                    </label>
+                    <select
+                      value={formDataRegla.tipo_documento_id}
+                      onChange={(e) => setFormDataRegla({...formDataRegla, tipo_documento_id: Number(e.target.value)})}
+                      className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none font-semibold ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-800'}`}
+                    >
+                      {tiposDocumento.map(t => (
+                        <option key={t.id} value={t.id}>{t.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
                     Nombre de la Cláusula *
@@ -199,9 +336,9 @@ function AdminReglas() {
                   <input
                     type="text"
                     required
-                    value={formData.nombre_clausula}
-                    onChange={(e) => setFormData({...formData, nombre_clausula: e.target.value})}
-                    placeholder="Ej: Confidencialidad de la Información"
+                    value={formDataRegla.nombre_clausula}
+                    onChange={(e) => setFormDataRegla({...formDataRegla, nombre_clausula: e.target.value})}
+                    placeholder="Ej: Depósito en Garantía"
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`}
                   />
                 </div>
@@ -213,9 +350,9 @@ function AdminReglas() {
                   <textarea
                     required
                     rows="4"
-                    value={formData.criterio_evaluacion}
-                    onChange={(e) => setFormData({...formData, criterio_evaluacion: e.target.value})}
-                    placeholder="Describe qué debe cumplir esta cláusula para ser válida..."
+                    value={formDataRegla.criterio_evaluacion}
+                    onChange={(e) => setFormDataRegla({...formDataRegla, criterio_evaluacion: e.target.value})}
+                    placeholder="Describe qué debe verificar la IA en esta cláusula para considerarla válida..."
                     className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none resize-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`}
                   />
                 </div>
@@ -229,8 +366,8 @@ function AdminReglas() {
                       <input
                         type="radio"
                         name="es_obligatoria"
-                        checked={formData.es_obligatoria === true}
-                        onChange={() => setFormData({...formData, es_obligatoria: true})}
+                        checked={formDataRegla.es_obligatoria === true}
+                        onChange={() => setFormDataRegla({...formDataRegla, es_obligatoria: true})}
                         className="w-4 h-4 text-blue-600"
                       />
                       <span className="font-semibold text-green-600 dark:text-green-400">Sí, obligatoria</span>
@@ -239,8 +376,8 @@ function AdminReglas() {
                       <input
                         type="radio"
                         name="es_obligatoria"
-                        checked={formData.es_obligatoria === false}
-                        onChange={() => setFormData({...formData, es_obligatoria: false})}
+                        checked={formDataRegla.es_obligatoria === false}
+                        onChange={() => setFormDataRegla({...formDataRegla, es_obligatoria: false})}
                         className="w-4 h-4 text-blue-600"
                       />
                       <span className="font-semibold text-yellow-600 dark:text-yellow-400">Recomendada</span>
@@ -251,7 +388,7 @@ function AdminReglas() {
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
-                    onClick={cancelarEdicion}
+                    onClick={cancelarEdicionRegla}
                     className={`flex-1 py-3 font-bold rounded-xl transition-colors ${modoOscuro ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}
                   >
                     Cancelar
@@ -268,14 +405,14 @@ function AdminReglas() {
           </div>
         )}
 
-        {/* Tabla de Reglas */}
+        {/* TABLA DE REGLAS JURÍDICAS */}
         <div className={`rounded-2xl shadow-sm border border-black/5 dark:border-white/10 overflow-hidden ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className={`${modoOscuro ? 'bg-slate-700/50 text-slate-300' : 'bg-slate-100 text-slate-600'} text-sm uppercase tracking-wider`}>
                   <th className="p-4 font-semibold">Cláusula</th>
-                  <th className="p-4 font-semibold">Tipo</th>
+                  <th className="p-4 font-semibold">Tipo de Documento</th>
                   <th className="p-4 font-semibold text-center">Obligatoria</th>
                   <th className="p-4 font-semibold">Criterio</th>
                   <th className="p-4 font-semibold text-center">Acciones</th>
@@ -286,12 +423,13 @@ function AdminReglas() {
                   <tr key={r.id} className={`hover:${modoOscuro ? 'bg-slate-700/30' : 'bg-slate-50'} transition-colors`}>
                     
                     <td className="p-4">
-                      <span className="font-medium text-base">{r.nombre_clausula}</span>
+                      <span className="font-bold text-base">{r.nombre_clausula}</span>
                     </td>
 
+                    {/* MUESTRA EL NOMBRE DEL TIPO EN LUGAR DE "TIPO ID: 1" */}
                     <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${modoOscuro ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-700'}`}>
-                        Tipo ID: {r.tipo_documento_id}
+                      <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${modoOscuro ? 'bg-blue-900/40 text-blue-300 border border-blue-800' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                        {obtenerNombreTipo(r.tipo_documento_id)}
                       </span>
                     </td>
 
