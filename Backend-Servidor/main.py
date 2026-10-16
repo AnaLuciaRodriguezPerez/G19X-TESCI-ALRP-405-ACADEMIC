@@ -55,8 +55,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔑 Tu clave de Google AI Studio
-GEMINI_API_KEY = "AQ.Ab8RN6IRazA7W7GIC_9TUCpU2nah-w6WbKTgEt2UP_PArS-NxA"
+# clave
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 
@@ -340,32 +340,26 @@ def actualizar_perfil(
 
 
 # ============================================
-# ENDPOINT: Analizar PDF con IA + REGLAS DE BD (SOLO ANALIZA, NO GUARDA)
+# ENDPOINT: Analizar PDF con IA + REGLAS DE BD (DINÁMICO)
 # ============================================
 @app.post("/api/documentos/analizar")
 async def analizar_documento(
     archivo: UploadFile = File(...),
     usuario_id: Optional[int] = Form(None),
+    tipo_documento_id: int = Form(...),  # 👈 NUEVO: Ahora es OBLIGATORIO recibir qué tipo de documento es
     db: Session = Depends(get_db),
 ):
     # 1. Validaciones básicas del PDF
     if not archivo.filename.lower().endswith(".pdf"):
-        raise HTTPException(
-            status_code=400, detail="Solo se permiten archivos en formato .pdf"
-        )
+        raise HTTPException(status_code=400, detail="Solo se permiten archivos en formato .pdf")
 
     contenido = await archivo.read()
 
     if len(contenido) > 10 * 1024 * 1024:
-        raise HTTPException(
-            status_code=400, detail="El archivo supera el límite de 10 MB"
-        )
+        raise HTTPException(status_code=400, detail="El archivo supera el límite de 10 MB")
 
     if not contenido.startswith(b"%PDF"):
-        raise HTTPException(
-            status_code=400,
-            detail="El archivo está corrupto o no es un PDF válido",
-        )
+        raise HTTPException(status_code=400, detail="El archivo está corrupto o no es un PDF válido")
 
     # 2. Guardar el PDF en uploads/documentos
     nombre_unico = f"{uuid.uuid4()}.pdf"
@@ -380,62 +374,52 @@ async def analizar_documento(
         for pagina in doc:
             texto_pdf += pagina.get_text() + "\n--- PÁGINA SIGUIENTE ---\n"
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error al leer el PDF: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error al leer el PDF: {str(e)}")
 
     if not texto_pdf.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="El PDF no contiene texto legible (puede ser una imagen o escaneo).",
-        )
+        raise HTTPException(status_code=400, detail="El PDF no contiene texto legible (puede ser una imagen o escaneo).")
 
-    # 4. CONSULTAR REGLAS JURÍDICAS EN LA BASE DE DATOS
-    tipo_doc = (
-        db.query(models.TipoDocumento)
-        .filter(models.TipoDocumento.id == 1)
-        .first()
-    )
+    # 4. CONSULTAR EL TIPO DE DOCUMENTO Y SUS REGLAS EN LA BD
+    tipo_doc = db.query(models.TipoDocumento).filter(models.TipoDocumento.id == tipo_documento_id).first()
+    
+    if not tipo_doc:
+        raise HTTPException(status_code=404, detail="El tipo de documento seleccionado no existe en el sistema.")
 
     reglas_texto_prompt = ""
-    if tipo_doc and tipo_doc.reglas:
+    if tipo_doc.reglas:
         for r in tipo_doc.reglas:
-            obligatorio = (
-                "OBLIGATORIA" if r.es_obligatoria else "OPCIONAL / RECOMENDADA"
-            )
+            obligatorio = "OBLIGATORIA" if r.es_obligatoria else "OPCIONAL / RECOMENDADA"
             reglas_texto_prompt += f"- Cláusula: {r.nombre_clausula} ({obligatorio})\n  Criterio: {r.criterio_evaluacion}\n\n"
     else:
-        reglas_texto_prompt = (
-            "- Verificar vigencia, partes, objeto y confidencialidad."
-        )
+        reglas_texto_prompt = "- Realizar una auditoría general legal de este documento identificando riesgos."
 
-    # 5. Prompt Jurídico Dinámico con las Reglas de PostgreSQL
+    # 5. Prompt Jurídico COMPLETAMENTE DINÁMICO
     prompt = f"""
     Eres un abogado corporativo Senior experto en auditoría documental en México.
 
     TAREA 1: CLASIFICACIÓN
-    Determina si el texto corresponde a un "Acuerdo de Confidencialidad" (NDA). Si es una Factura, CV, etc., pon "es_acuerdo_confidencialidad": false y explica por qué.
+    Determina si el texto corresponde a un/una "{tipo_doc.nombre}". Si es otro tipo de documento (ej. una factura, una receta, un CV), pon "es_documento_correcto": false y explica por qué.
 
     TEXTO DEL DOCUMENTO A EVALUAR:
     \"\"\"
     {texto_pdf}
     \"\"\"
 
-    REGLAS JURÍDICAS OBLIGATORIAS Y RECOMENDADAS A EVALUAR (Cargadas de la Base de Datos):
+    REGLAS JURÍDICAS OBLIGATORIAS Y RECOMENDADAS A EVALUAR PARA UN {tipo_doc.nombre.upper()}:
     {reglas_texto_prompt}
 
     FORMATO DE RESPUESTA EXCLUSIVO (JSON estricto sin markdown ```json):
 
-    SI NO ES UN ACUERDO DE CONFIDENCIALIDAD:
+    SI NO ES UN/UNA {tipo_doc.nombre.upper()}:
     {{
-      "es_acuerdo_confidencialidad": false,
-      "tipo_detectado": "Tipo de documento (ej. Factura)",
-      "motivo": "Por qué no es un NDA."
+      "es_documento_correcto": false,
+      "tipo_detectado": "Tipo de documento detectado (ej. Factura)",
+      "motivo": "Por qué no es un {tipo_doc.nombre}."
     }}
 
-    SI SÍ ES UN ACUERDO DE CONFIDENCIALIDAD:
+    SI SÍ ES UN/UNA {tipo_doc.nombre.upper()}:
     {{
-      "es_acuerdo_confidencialidad": true,
+      "es_documento_correcto": true,
       "estado": "Aprobado" o "Atención Requerida" o "Riesgo Alto",
       "puntuacion_riesgo": "Bajo" o "Medio" o "Alto",
       "resumen_ejecutivo": "Resumen profesional de 3 oraciones con el diagnóstico general del documento.",
@@ -444,7 +428,7 @@ async def analizar_documento(
           "nombre": "Nombre exacto de la cláusula evaluada según las reglas proporcionadas",
           "estado": "Cumple" o "Ausente / Recomendado agregar",
           "proposito": "Explica brevemente para qué sirve legalmente esta cláusula.",
-          "observaciones": "Describe qué encontraste o qué falta exactamente en el documento subido sobre este tema.",
+          "observaciones": "Describe qué encontraste o qué falta exactamente en el documento subido.",
           "recomendacion": "Qué debe hacer el usuario para mejorar o corregir esta parte."
         }}
       ]
@@ -453,14 +437,12 @@ async def analizar_documento(
 
     # 6. Consultar a la IA
     try:
-        modelo = genai.GenerativeModel("models/gemini-3.6-flash")
+        modelo = genai.GenerativeModel("models/gemini-3.6-flash") # Asegurate de usar "gemini-1.5-flash" si el 3.6 no existe
         respuesta_ia = modelo.generate_content(prompt)
         texto_respuesta = respuesta_ia.text.strip()
 
         if "```json" in texto_respuesta:
-            texto_respuesta = texto_respuesta.split("```json")[1].split(
-                "```"
-            )[0]
+            texto_respuesta = texto_respuesta.split("```json")[1].split("```")[0]
         elif "```" in texto_respuesta:
             texto_respuesta = texto_respuesta.split("```")[1].split("```")[0]
 
@@ -468,25 +450,22 @@ async def analizar_documento(
 
     except Exception as error:
         print(f"🛑 Error de conexión con IA: {error}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al analizar el documento con IA: {str(error)}",
-        )
+        raise HTTPException(status_code=500, detail=f"Error al analizar el documento con IA: {str(error)}")
 
-    # 7. VALIDACIÓN: ¿Es o no es un Acuerdo de Confidencialidad?
-    if not resultado_json.get("es_acuerdo_confidencialidad", True):
-        tipo = resultado_json.get("tipo_detectado", "documento no relacionado")
+    # 7. VALIDACIÓN: ¿Es el documento correcto?
+    if not resultado_json.get("es_documento_correcto", True):
+        tipo_detectado = resultado_json.get("tipo_detectado", "documento no relacionado")
         motivo = resultado_json.get("motivo", "")
 
         raise HTTPException(
             status_code=400,
-            detail=f"No se puede validar el documento: No corresponde a un Acuerdo de Confidencialidad (Se identificó como '{tipo}'). {motivo}",
+            detail=f"No se puede validar el documento: No corresponde a un '{tipo_doc.nombre}' (Se identificó como '{tipo_detectado}'). {motivo}",
         )
 
-    # Retorna únicamente el resultado del análisis (NO GUARDA EN BD AÚN)
     return {
         "mensaje": "Documento analizado con IA exitosamente",
         "archivo": archivo.filename,
+        "tipo_documento": tipo_doc.nombre, # 👈 Retornamos el nombre para el frontend
         "resultado": resultado_json,
     }
 
@@ -524,19 +503,18 @@ def guardar_analisis(body: GuardarAnalisisRequest, db: Session = Depends(get_db)
 
 
 # ============================================
-# CHAT DEL INFORME DETALLADO
+# CHAT DEL INFORME DETALLADO (DINÁMICO)
 # ============================================
 class MensajeChat(BaseModel):
-    role: str  # "user" o "assistant"
+    role: str  
     content: str
-
 
 class ConsultaDocumentoRequest(BaseModel):
     pregunta: str
     resultado_analisis: dict
     nombre_archivo: Optional[str] = None
+    tipo_documento_nombre: Optional[str] = "Documento Legal" # 👈 NUEVO: Recibe el nombre del documento
     historial: Optional[List[MensajeChat]] = []
-
 
 @app.post("/api/documentos/consultar")
 async def consultar_documento(body: ConsultaDocumentoRequest):
@@ -552,8 +530,9 @@ async def consultar_documento(body: ConsultaDocumentoRequest):
             quien = "Usuario" if m.role == "user" else "Asistente"
             historial_texto += f"{quien}: {m.content}\n"
 
+    # 👇 PROMPT DINÁMICO
     prompt = f"""
-Eres el asistente jurídico de DocuVerify. Ya se analizó un Acuerdo de Confidencialidad.
+Eres el asistente jurídico de DocuVerify. Se acaba de analizar un documento del tipo: {body.tipo_documento_nombre}.
 Responde en español, claro y profesional (como en un chat).
 No inventes cláusulas que no estén en el INFORME. Si no hay dato, dilo con honestidad.
 
@@ -941,6 +920,17 @@ def restablecer_contrasena(body: RestablecerRequest, db: Session = Depends(get_d
     db.commit()
 
     return {"mensaje": "Contraseña restablecida correctamente. Ya puedes iniciar sesión."}
+
+
+
+# ============================================
+# ENDPOINT: Obtener tipos de documento (PÚBLICO)
+# ============================================
+@app.get("/api/tipos-documento")
+def obtener_tipos_documento_publico(db: Session = Depends(get_db)):
+    # Solo trae los que están activos
+    tipos = db.query(models.TipoDocumento).filter(models.TipoDocumento.activo == True).all()
+    return [{"id": t.id, "nombre": t.nombre, "descripcion": t.descripcion} for t in tipos]
 
 
 
