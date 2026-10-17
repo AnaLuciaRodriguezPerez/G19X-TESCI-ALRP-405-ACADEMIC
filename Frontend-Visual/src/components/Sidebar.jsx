@@ -136,7 +136,7 @@ function Sidebar() {
                 >
                   <FileText size={24} />
                   <span className="font-semibold text-lg text-left leading-tight">
-                    Acuerdo de<br />confidencialidad
+                    Analizar
                   </span>
                 </button>
               </Link>
