@@ -10,14 +10,13 @@ import fitz
 import google.generativeai as genai
 
 
-
-# ============================================
 # IMPORTS PARA CORREOS Y RECUPERACIÓN
-# ============================================
-import hashlib                      # Para hashear tokens
-import secrets                      # Para generar tokens seguros
-import smtplib                      # Para enviar correos
-import time                         # Para límite de solicitudes
+
+
+import hashlib           
+import secrets                    
+import smtplib                   
+import time                        
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 
@@ -36,17 +35,14 @@ import models
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-# Crear las tablas automáticamente en PostgreSQL
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="DocuVerify API")
 
-# Carpeta donde se guardarán los archivos subidos (fotos y documentos)
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("uploads/documentos", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Configurar CORS para permitir conexiones desde React
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -55,14 +51,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# clave
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 
-# ============================================
-# FUNCIONES DE ENCRIPTACIÓN (bcrypt)
-# ============================================
+# FUNCIONES DE ENCRIPTACIÓN
+
+
 def hash_password(password: str) -> str:
     pwd_bytes = password.encode("utf-8")
     salt = bcrypt.gensalt()
@@ -78,10 +73,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         return False
 
 
-# ============================================
-# ENDPOINT: Registrar Usuario (MODIFICADO)
-# Ahora envía correo de verificación al registrarse
-# ============================================
+
+# ENDPOINT: Registrar Usuario
+
+
 @app.post("/registro")
 def registrar_usuario(
     nombre: str,
@@ -99,8 +94,6 @@ def registrar_usuario(
         raise HTTPException(
             status_code=400, detail="El correo ya está registrado"
         )
-
-    # 👇 NUEVO: Validar que la contraseña cumpla los requisitos de seguridad
     errores_contrasena = validar_contrasena(contrasena)
     if errores_contrasena:
         raise HTTPException(
@@ -108,23 +101,18 @@ def registrar_usuario(
             detail="La contraseña no cumple los requisitos de seguridad: "
                    + ", ".join(errores_contrasena) + ".",
         )
-
     contrasena_encriptada = hash_password(contrasena)
-
     nuevo_usuario = models.Usuario(
         nombre=nombre,
         apellido_paterno=apellido_paterno,
         apellido_materno=apellido_materno,
         email=email,
         contrasena=contrasena_encriptada,
-        email_verificado=False,  # 👈 NUEVO: aún no verificado
+        email_verificado=False,
     )
-
     db.add(nuevo_usuario)
     db.commit()
     db.refresh(nuevo_usuario)
-
-    # ---- NUEVO: Generar token de verificación y enviar correo ----
     token = secrets.token_urlsafe(32)
     nuevo_token = models.TokenVerificacion(
         usuario_id=nuevo_usuario.id,
@@ -133,24 +121,16 @@ def registrar_usuario(
     )
     db.add(nuevo_token)
     db.commit()
-
     enlace = f"{FRONTEND_URL}/verificar-correo?token={token}"
-
-    # Se envía en segundo plano (el usuario no espera)
     background_tasks.add_task(
         enviar_correo_verificacion,
         email, nombre, enlace
     )
-
     return {
         "mensaje": "Usuario registrado. Revisa tu correo electrónico para verificar tu cuenta.",
         "id": nuevo_usuario.id,
     }
 
-
-# ============================================
-# NUEVO: Validación de fortaleza de contraseña
-# ============================================
 def validar_contrasena(password: str):
     """
     Valida que la contraseña cumpla los requisitos de seguridad.
@@ -159,36 +139,29 @@ def validar_contrasena(password: str):
     """
     errores = []
 
-    # Regla 1: longitud mínima de 8 caracteres
     if len(password) < 8:
         errores.append("mínimo 8 caracteres")
 
-    # Regla 2: al menos una letra mayúscula
     if not any(c.isupper() for c in password):
         errores.append("al menos una mayúscula")
 
-    # Regla 3: al menos una letra minúscula
     if not any(c.islower() for c in password):
         errores.append("al menos una minúscula")
 
-    # Regla 4: al menos un número
     if not any(c.isdigit() for c in password):
         errores.append("al menos un número")
 
-    # Regla 5: al menos un carácter especial (algo que NO sea letra o número)
     if not any(not c.isalnum() for c in password):
         errores.append("al menos un carácter especial (!@#$%...)")
 
     return errores
 
 
-# ============================================
 # ENDPOINT: Iniciar Sesión
-# Solo permite entrar a usuarios con correo verificado
-# ============================================
+
+
 @app.post("/login")
 def login(email: str, contrasena: str, db: Session = Depends(get_db)):
-    # Buscamos el usuario por correo
     usuario = (
         db.query(models.Usuario)
         .filter(models.Usuario.email == email)
@@ -204,19 +177,12 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
     if not usuario.activo:
         raise HTTPException(status_code=403, detail="Tu cuenta ha sido bloqueada por un administrador.")
 
-    # 👇 BLOQUEO PRINCIPAL
-    # Si el usuario existe y la contraseña es correcta,
-    # pero todavía no verificó su correo, NO lo dejamos entrar.
     if not usuario.email_verificado:
         raise HTTPException(
             status_code=403,
             detail="Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.",
         )
 
-    # Si llegó hasta aquí, significa que:
-    # 1. El correo existe
-    # 2. La contraseña es correcta
-    # 3. El correo ya fue verificado
     return {
         "mensaje": "Inicio de sesión exitoso",
         "usuario": {
@@ -226,18 +192,18 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
             "apellido_materno": usuario.apellido_materno,
             "email": usuario.email,
             "foto": usuario.foto,
-             "rol": usuario.rol, # 👈 NUEVA LÍNEA AÑADIDA
+             "rol": usuario.rol, 
         },
     }
 
 
-# ============================================
 # ENDPOINT: Subir / Actualizar Foto de Perfil
-# ============================================
+
+
 @app.post("/perfil/{usuario_id}/foto")
 async def subir_foto_perfil(
     usuario_id: int,
-    archivo: UploadFile = File(...),  # <-- era foto, ahora archivo
+    archivo: UploadFile = File(...), 
     db: Session = Depends(get_db)
 ):
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
@@ -289,12 +255,9 @@ def cambiar_contrasena(
     return {"mensaje": "Contraseña actualizada correctamente"}
 
 
-
-
-
-# ============================================
 # ENDPOINT: Actualizar datos del perfil
-# ============================================
+
+
 @app.put("/perfil/{usuario_id}")
 def actualizar_perfil(
     usuario_id: int,
@@ -339,17 +302,17 @@ def actualizar_perfil(
     }
 
 
-# ============================================
-# ENDPOINT: Analizar PDF con IA + REGLAS DE BD (DINÁMICO)
-# ============================================
+# ENDPOINT: Analizar PDF con IA + REGLAS DE BD
+
+
 @app.post("/api/documentos/analizar")
 async def analizar_documento(
     archivo: UploadFile = File(...),
     usuario_id: Optional[int] = Form(None),
-    tipo_documento_id: int = Form(...),  # 👈 NUEVO: Ahora es OBLIGATORIO recibir qué tipo de documento es
+    tipo_documento_id: int = Form(...),  
     db: Session = Depends(get_db),
 ):
-    # 1. Validaciones básicas del PDF
+    
     if not archivo.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Solo se permiten archivos en formato .pdf")
 
@@ -361,13 +324,11 @@ async def analizar_documento(
     if not contenido.startswith(b"%PDF"):
         raise HTTPException(status_code=400, detail="El archivo está corrupto o no es un PDF válido")
 
-    # 2. Guardar el PDF en uploads/documentos
     nombre_unico = f"{uuid.uuid4()}.pdf"
     ruta_guardado = os.path.join("uploads", "documentos", nombre_unico)
     with open(ruta_guardado, "wb") as f:
         f.write(contenido)
 
-    # 3. Extraer TODO el texto del PDF
     texto_pdf = ""
     try:
         doc = fitz.open(stream=contenido, filetype="pdf")
@@ -379,7 +340,6 @@ async def analizar_documento(
     if not texto_pdf.strip():
         raise HTTPException(status_code=400, detail="El PDF no contiene texto legible (puede ser una imagen o escaneo).")
 
-    # 4. CONSULTAR EL TIPO DE DOCUMENTO Y SUS REGLAS EN LA BD
     tipo_doc = db.query(models.TipoDocumento).filter(models.TipoDocumento.id == tipo_documento_id).first()
     
     if not tipo_doc:
@@ -393,7 +353,6 @@ async def analizar_documento(
     else:
         reglas_texto_prompt = "- Realizar una auditoría general legal de este documento identificando riesgos."
 
-    # 5. Prompt Jurídico COMPLETAMENTE DINÁMICO
     prompt = f"""
     Eres un abogado corporativo Senior experto en auditoría documental en México.
 
@@ -435,7 +394,6 @@ async def analizar_documento(
     }}
     """
 
-    # 6. Consultar a la IA
     try:
         modelo = genai.GenerativeModel("models/gemini-3.6-flash") # Asegurate de usar "gemini-1.5-flash" si el 3.6 no existe
         respuesta_ia = modelo.generate_content(prompt)
@@ -452,7 +410,6 @@ async def analizar_documento(
         print(f"🛑 Error de conexión con IA: {error}")
         raise HTTPException(status_code=500, detail=f"Error al analizar el documento con IA: {str(error)}")
 
-    # 7. VALIDACIÓN: ¿Es el documento correcto?
     if not resultado_json.get("es_documento_correcto", True):
         tipo_detectado = resultado_json.get("tipo_detectado", "documento no relacionado")
         motivo = resultado_json.get("motivo", "")
@@ -465,14 +422,13 @@ async def analizar_documento(
     return {
         "mensaje": "Documento analizado con IA exitosamente",
         "archivo": archivo.filename,
-        "tipo_documento": tipo_doc.nombre, # 👈 Retornamos el nombre para el frontend
+        "tipo_documento": tipo_doc.nombre,
         "resultado": resultado_json,
     }
 
 
-# ============================================
 # ENDPOINT: Guardar análisis SOLO cuando se presiona "Aceptar validación"
-# ============================================
+
 class GuardarAnalisisRequest(BaseModel):
     usuario_id: int
     nombre_archivo: str
@@ -502,9 +458,9 @@ def guardar_analisis(body: GuardarAnalisisRequest, db: Session = Depends(get_db)
     }
 
 
-# ============================================
-# CHAT DEL INFORME DETALLADO (DINÁMICO)
-# ============================================
+# INFORME DETALLADO
+
+
 class MensajeChat(BaseModel):
     role: str  
     content: str
@@ -530,7 +486,6 @@ async def consultar_documento(body: ConsultaDocumentoRequest):
             quien = "Usuario" if m.role == "user" else "Asistente"
             historial_texto += f"{quien}: {m.content}\n"
 
-    # 👇 PROMPT DINÁMICO
     prompt = f"""
 Eres el asistente jurídico de DocuVerify. Se acaba de analizar un documento del tipo: {body.tipo_documento_nombre}.
 Responde en español, claro y profesional (como en un chat).
@@ -566,9 +521,9 @@ Responde SOLO el texto del mensaje (sin JSON, sin markdown de código).
     return {"respuesta": texto}
 
 
-# ============================================
 # ENDPOINT: Obtener Historial del Usuario
-# ============================================
+
+
 @app.get("/api/historial/{usuario_id}")
 def obtener_historial(usuario_id: int, db: Session = Depends(get_db)):
     historial = (
@@ -583,12 +538,8 @@ def obtener_historial(usuario_id: int, db: Session = Depends(get_db)):
         
     return historial
 
+# CONFIGURACIÓN DE CORREO
 
-
-
-# ============================================
-# CONFIGURACIÓN DE CORREO (leída del archivo .env)
-# ============================================
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
@@ -599,10 +550,8 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 MINUTOS_EXPIRACION_RECUPERACION = 30  # Enlace de recuperación dura 30 min
 HORAS_EXPIRACION_VERIFICACION = 24    # Enlace de verificación dura 24 horas
 
+# LÍMITE DE SOLICITUDES
 
-# ============================================
-# LÍMITE DE SOLICITUDES (anti-spam)
-# ============================================
 _solicitudes = {}
 MAX_SOLICITUDES = 5
 VENTANA_SEGUNDOS = 15 * 60  # 15 minutos
@@ -622,10 +571,8 @@ def _excede_limite(email: str) -> bool:
     _solicitudes[email] = recientes
     return False
 
-
-# ============================================
 # FUNCIONES DE CORREO
-# ============================================
+
 def _hash_token(token: str) -> str:
     """Convierte el token en hash SHA-256 para guardarlo en la BD."""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
@@ -718,10 +665,8 @@ def enviar_correo_recuperacion(email: str, nombre: str, enlace: str):
     """
     enviar_correo(email, "Recupera tu contraseña - DocuVerify", texto, html)
 
-
-# ============================================
 # MODELOS DE DATOS PARA LOS ENDPOINTS NUEVOS
-# ============================================
+
 class SolicitudRecuperacion(BaseModel):
     email: str
 
@@ -735,9 +680,9 @@ class ReenviarVerificacionRequest(BaseModel):
     email: str
 
 
-# ============================================
-# ENDPOINT: Verificar correo (MODO DIAGNÓSTICO)
-# ============================================
+# ENDPOINT: Verificar correo
+
+
 @app.get("/verificar-correo")
 def verificar_correo(token: str, db: Session = Depends(get_db)):
     registro = (
@@ -746,11 +691,9 @@ def verificar_correo(token: str, db: Session = Depends(get_db)):
         .first()
     )
 
-    # 1. Si no existe
     if not registro:
          raise HTTPException(status_code=400, detail="El enlace no es válido.")
 
-    # 2. Si el token expiró
     if registro.expira_en < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="El enlace ha expirado.")
 
@@ -758,14 +701,12 @@ def verificar_correo(token: str, db: Session = Depends(get_db)):
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    # 3. SI YA FUE USADO: Validar si el usuario ya está verificado
     if registro.usado:
         if usuario.email_verificado:
             return {"mensaje": "Tu correo ya fue verificado anteriormente. Ya puedes iniciar sesión."}
         else:
             raise HTTPException(status_code=400, detail="Este enlace ya fue utilizado.")
 
-    # 4. Si es la primera vez que se usa
     usuario.email_verificado = True
     registro.usado = True
     db.commit()
@@ -773,9 +714,8 @@ def verificar_correo(token: str, db: Session = Depends(get_db)):
     return {"mensaje": "Correo verificado correctamente. Ya puedes iniciar sesión."}
 
 
-# ============================================
 # ENDPOINT: Reenviar correo de verificación
-# ============================================
+
 @app.post("/reenviar-verificacion")
 def reenviar_verificacion(
     body: ReenviarVerificacionRequest,
@@ -784,7 +724,6 @@ def reenviar_verificacion(
 ):
     email = body.email.strip().lower()
 
-    # Mensaje genérico (no revela si el correo existe)
     respuesta = {
         "mensaje": "Si el correo está registrado y sin verificar, recibirás un nuevo enlace."
     }
@@ -803,13 +742,11 @@ def reenviar_verificacion(
     if not usuario or usuario.email_verificado:
         return respuesta
 
-    # Invalidar tokens anteriores
     db.query(models.TokenVerificacion).filter(
         models.TokenVerificacion.usuario_id == usuario.id,
         models.TokenVerificacion.usado == False,  # noqa: E712
     ).update({"usado": True})
 
-    # Generar nuevo token
     token = secrets.token_urlsafe(32)
     nuevo_token = models.TokenVerificacion(
         usuario_id=usuario.id,
@@ -827,9 +764,9 @@ def reenviar_verificacion(
     return respuesta
 
 
-# ============================================
 # ENDPOINT: Solicitar recuperación de contraseña
-# ============================================
+
+
 @app.post("/recuperar-contrasena")
 def solicitar_recuperacion(
     body: SolicitudRecuperacion,
@@ -838,7 +775,6 @@ def solicitar_recuperacion(
 ):
     email = body.email.strip().lower()
 
-    # Mensaje genérico siempre (no revela si existe)
     respuesta = {
         "mensaje": "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña."
     }
@@ -857,13 +793,11 @@ def solicitar_recuperacion(
     if not usuario:
         return respuesta
 
-    # Invalidar enlaces anteriores sin usar
     db.query(models.TokenRecuperacion).filter(
         models.TokenRecuperacion.usuario_id == usuario.id,
         models.TokenRecuperacion.usado == False,  # noqa: E712
     ).update({"usado": True})
 
-    # Generar token
     token = secrets.token_urlsafe(32)
     nuevo_token = models.TokenRecuperacion(
         usuario_id=usuario.id,
@@ -881,12 +815,11 @@ def solicitar_recuperacion(
     return respuesta
 
 
-# ============================================
 # ENDPOINT: Restablecer contraseña con el token
-# ============================================
+
+
 @app.post("/restablecer-contrasena")
 def restablecer_contrasena(body: RestablecerRequest, db: Session = Depends(get_db)):
-     # 👇 CAMBIO: ahora valida TODOS los requisitos, no solo la longitud
     errores_contrasena = validar_contrasena(body.nueva_contrasena)
     if errores_contrasena:
         raise HTTPException(
@@ -915,17 +848,16 @@ def restablecer_contrasena(body: RestablecerRequest, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     usuario.contrasena = hash_password(body.nueva_contrasena)
-    usuario.email_verificado = True  # Al restablecer, también verificamos
+    usuario.email_verificado = True
     registro.usado = True
     db.commit()
 
     return {"mensaje": "Contraseña restablecida correctamente. Ya puedes iniciar sesión."}
 
 
+# ENDPOINT: Obtener tipos de documento
 
-# ============================================
-# ENDPOINT: Obtener tipos de documento (PÚBLICO)
-# ============================================
+
 @app.get("/api/tipos-documento")
 def obtener_tipos_documento_publico(db: Session = Depends(get_db)):
     # Solo trae los que están activos
@@ -933,12 +865,7 @@ def obtener_tipos_documento_publico(db: Session = Depends(get_db)):
     return [{"id": t.id, "nombre": t.nombre, "descripcion": t.descripcion} for t in tipos]
 
 
-
-# =====================================================================
-# =====================================================================
-# 🔴 ZONA EXCLUSIVA PARA ADMINISTRADORES 🔴
-# =====================================================================
-# =====================================================================
+# EXCLUSIV0 PARA ADMINISTRADORES
 
 def verificar_es_admin(admin_id: int, db: Session):
     """Función de seguridad: Verifica que el usuario que pide los datos sea realmente un Admin"""
@@ -947,46 +874,47 @@ def verificar_es_admin(admin_id: int, db: Session):
         raise HTTPException(status_code=403, detail="Acceso denegado. Permisos insuficientes.")
     return usuario
 
-# -----------------------------------------------------
-# 1. Obtener Estadísticas (COMPLETO CON 4 GRÁFICAS)
-# -----------------------------------------------------
+# 1. Obtener Estadísticas (COMPLETO CON 5 GRÁFICAS)
+
 @app.get("/api/admin/estadisticas")
 def obtener_estadisticas_admin(admin_id: int, db: Session = Depends(get_db)):
     verificar_es_admin(admin_id, db)
-    
-    # 1. Datos básicos (Tarjetas)
+
     total_usuarios = db.query(models.Usuario).count()
     usuarios_verificados = db.query(models.Usuario).filter(models.Usuario.email_verificado == True).count()
     usuarios_no_verificados = total_usuarios - usuarios_verificados
     total_reglas = db.query(models.ReglaJuridica).count()
     
-    # Traemos todos los análisis para procesarlos
+    tipos_doc = db.query(models.TipoDocumento).all()
+    total_tipos_documento = len(tipos_doc)
+    mapa_tipos = {t.id: t.nombre for t in tipos_doc} 
+
     todos_analisis = db.query(models.AnalisisResultado).all()
     total_analisis = len(todos_analisis)
     
-    # 2. Contenedores para las gráficas
     meses_nombres = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
     analisis_por_mes = {mes: 0 for mes in meses_nombres}
-    
     riesgos = {"Aprobado": 0, "Atención Requerida": 0, "Riesgo Alto": 0, "No clasificado": 0}
     clausulas_ausentes = {}
     
-    # 3. Procesamiento de los JSON almacenados
+    analisis_por_tipo = {}
+    
     for a in todos_analisis:
-        # Gráfica de Línea: Análisis por mes
+        tipo_id = getattr(a, 'tipo_documento_id', 1) or 1
+        nombre_tipo = mapa_tipos.get(tipo_id, "Otro / General")
+        analisis_por_tipo[nombre_tipo] = analisis_por_tipo.get(nombre_tipo, 0) + 1
+
         if a.fecha_analisis:
             mes_nombre = meses_nombres[a.fecha_analisis.month - 1]
             analisis_por_mes[mes_nombre] += 1
             
         if a.resultado_ia and isinstance(a.resultado_ia, dict):
-            # Gráfica de Pastel: Riesgos
             estado = a.resultado_ia.get("estado", "No clasificado")
             if estado in riesgos:
                 riesgos[estado] += 1
             else:
                 riesgos["No clasificado"] += 1
-                
-            # Gráfica de Barras Horizontales: Cláusulas faltantes
+
             clausulas = a.resultado_ia.get("clausulas_detectadas", [])
             if isinstance(clausulas, list):
                 for c in clausulas:
@@ -996,7 +924,6 @@ def obtener_estadisticas_admin(admin_id: int, db: Session = Depends(get_db)):
                             nombre_c = nombre_c[:30] + "..."
                         clausulas_ausentes[nombre_c] = clausulas_ausentes.get(nombre_c, 0) + 1
 
-    # Ordenar para obtener el TOP 5 de cláusulas faltantes
     top_clausulas = sorted(clausulas_ausentes.items(), key=lambda x: x[1], reverse=True)[:5]
 
     return {
@@ -1005,6 +932,7 @@ def obtener_estadisticas_admin(admin_id: int, db: Session = Depends(get_db)):
         "usuarios_no_verificados": usuarios_no_verificados,
         "total_analisis": total_analisis,
         "total_reglas": total_reglas,
+        "total_tipos_documento": total_tipos_documento,
         
         "grafico_meses": list(analisis_por_mes.keys()),
         "grafico_valores": list(analisis_por_mes.values()),
@@ -1014,11 +942,13 @@ def obtener_estadisticas_admin(admin_id: int, db: Session = Depends(get_db)):
         
         "grafico_clausulas_labels": [c[0] for c in top_clausulas],
         "grafico_clausulas_valores": [c[1] for c in top_clausulas],
+        
+        "grafico_tipos_labels": list(analisis_por_tipo.keys()),
+        "grafico_tipos_valores": list(analisis_por_tipo.values()),
     }
 
-# -----------------------------------------------------
 # 2. Obtener la lista de TODOS los usuarios
-# -----------------------------------------------------
+
 @app.get("/api/admin/usuarios")
 def obtener_todos_los_usuarios(admin_id: int, db: Session = Depends(get_db)):
     verificar_es_admin(admin_id, db)
@@ -1033,13 +963,12 @@ def obtener_todos_los_usuarios(admin_id: int, db: Session = Depends(get_db)):
             "email": u.email,
             "rol": u.rol,
             "email_verificado": u.email_verificado,
-            "activo": u.activo  # 👈 NUEVO: para saber si está bloqueado
+            "activo": u.activo
         })
     return lista_segura
 
-# -----------------------------------------------------
-# 3. Cambiar el rol de un usuario (Hacerlo Admin o quitarle el Admin)
-# -----------------------------------------------------
+# 3. Cambiar el rol de un usuario
+
 @app.put("/api/admin/usuarios/{usuario_target_id}/rol")
 def cambiar_rol_usuario(
     usuario_target_id: int, 
@@ -1049,7 +978,6 @@ def cambiar_rol_usuario(
 ):
     verificar_es_admin(admin_id, db)
     
-    # Evitar que el admin se quite el rol a sí mismo por error
     if usuario_target_id == admin_id:
         raise HTTPException(status_code=400, detail="No puedes cambiar tu propio rol por seguridad.")
         
@@ -1061,9 +989,8 @@ def cambiar_rol_usuario(
     db.commit()
     return {"mensaje": f"Rol actualizado a {nuevo_rol} exitosamente."}
 
-# -----------------------------------------------------
 # 4. Eliminar un usuario permanentemente
-# -----------------------------------------------------
+
 @app.delete("/api/admin/usuarios/{usuario_target_id}")
 def eliminar_usuario(usuario_target_id: int, admin_id: int, db: Session = Depends(get_db)):
     verificar_es_admin(admin_id, db)
@@ -1079,10 +1006,8 @@ def eliminar_usuario(usuario_target_id: int, admin_id: int, db: Session = Depend
     db.commit()
     return {"mensaje": "Usuario eliminado permanentemente del sistema."}
 
-
-# -----------------------------------------------------
 # 5. Bloquear o Desbloquear un usuario
-# -----------------------------------------------------
+
 @app.put("/api/admin/usuarios/{usuario_target_id}/estado")
 def cambiar_estado_usuario(
     usuario_target_id: int, 
@@ -1105,24 +1030,19 @@ def cambiar_estado_usuario(
     estado_texto = "activado" if activo else "bloqueado"
     return {"mensaje": f"Usuario {estado_texto} exitosamente."}
 
+# 6. Historial Global de Análisis
 
-# -----------------------------------------------------
-# 6. Historial Global de Análisis (Solo Metadatos)
-# -----------------------------------------------------
 @app.get("/api/admin/historial-global")
 def obtener_historial_global(admin_id: int, db: Session = Depends(get_db)):
     verificar_es_admin(admin_id, db)
     
-    # Obtenemos todos los análisis ordenados por fecha (más reciente primero)
     todos_analisis = db.query(models.AnalisisResultado).order_by(models.AnalisisResultado.fecha_analisis.desc()).all()
     
     lista_segura = []
     for a in todos_analisis:
-        # Obtenemos los datos del usuario dueño del análisis
         usuario = db.query(models.Usuario).filter(models.Usuario.id == a.usuario_id).first()
         email_usuario = usuario.email if usuario else "Usuario eliminado"
         
-        # Extraemos SOLO los metadatos del JSON de la IA
         resultado = a.resultado_ia if a.resultado_ia else {}
         estado = resultado.get("estado", "Desconocido")
         riesgo = resultado.get("puntuacion_riesgo", "Desconocido")
@@ -1138,15 +1058,8 @@ def obtener_historial_global(admin_id: int, db: Session = Depends(get_db)):
         
     return lista_segura
 
-
-
-# =====================================================================
-# GESTIÓN DE REGLAS JURÍDICAS Y TIPOS DE DOCUMENTO
-# =====================================================================
-
-# -----------------------------------------------------
 # 7. Obtener todos los tipos de documento
-# -----------------------------------------------------
+
 @app.get("/api/admin/tipos-documento")
 def obtener_tipos_documento(admin_id: int, db: Session = Depends(get_db)):
     verificar_es_admin(admin_id, db)
@@ -1158,9 +1071,8 @@ def obtener_tipos_documento(admin_id: int, db: Session = Depends(get_db)):
         "activo": t.activo
     } for t in tipos]
 
-# -----------------------------------------------------
 # 8. Crear nuevo tipo de documento
-# -----------------------------------------------------
+
 @app.post("/api/admin/tipos-documento")
 def crear_tipo_documento(
     nombre: str,
@@ -1187,9 +1099,8 @@ def crear_tipo_documento(
     
     return {"mensaje": "Tipo de documento creado exitosamente", "id": nuevo_tipo.id}
 
-# -----------------------------------------------------
-# 9. Obtener todas las reglas jurídicas (con filtro opcional por tipo)
-# -----------------------------------------------------
+# 9. Obtener todas las reglas jurídicas
+
 @app.get("/api/admin/reglas")
 def obtener_reglas(admin_id: int, tipo_documento_id: int = None, db: Session = Depends(get_db)):
     verificar_es_admin(admin_id, db)
@@ -1209,9 +1120,8 @@ def obtener_reglas(admin_id: int, tipo_documento_id: int = None, db: Session = D
         "creado_en": r.creado_en.strftime("%Y-%m-%d") if r.creado_en else "N/A"
     } for r in reglas]
 
-# -----------------------------------------------------
 # 10. Crear nueva regla jurídica
-# -----------------------------------------------------
+
 @app.post("/api/admin/reglas")
 def crear_regla(
     tipo_documento_id: int,
@@ -1243,9 +1153,8 @@ def crear_regla(
     
     return {"mensaje": "Regla jurídica creada exitosamente", "id": nueva_regla.id}
 
-# -----------------------------------------------------
 # 11. Editar regla jurídica existente
-# -----------------------------------------------------
+
 @app.put("/api/admin/reglas/{regla_id}")
 def editar_regla(
     regla_id: int,
@@ -1270,9 +1179,8 @@ def editar_regla(
     db.commit()
     return {"mensaje": "Regla actualizada exitosamente"}
 
-# -----------------------------------------------------
 # 12. Eliminar regla jurídica
-# -----------------------------------------------------
+
 @app.delete("/api/admin/reglas/{regla_id}")
 def eliminar_regla(regla_id: int, admin_id: int, db: Session = Depends(get_db)):
     verificar_es_admin(admin_id, db)
@@ -1286,12 +1194,3 @@ def eliminar_regla(regla_id: int, admin_id: int, db: Session = Depends(get_db)):
     db.delete(regla)
     db.commit()
     return {"mensaje": "Regla eliminada exitosamente"}
-
-
-
-# ============================================
-# ENDPOINT DE PRUEBA
-# ============================================
-@app.get("/")
-def home():
-    return {"mensaje": "Servidor DocuVerify funcionando 🚀"}
