@@ -13,10 +13,7 @@ function Login() {
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
-
   // FUNCIÓN PARA INICIAR SESIÓN
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -36,13 +33,12 @@ function Login() {
       const datosUsuario = respuesta.data.usuario;
       localStorage.setItem('usuario', JSON.stringify(respuesta.data.usuario));
 
+      // Redirección correcta según el rol del usuario
       if (datosUsuario.rol === 'admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/inicio');
       }
-
-      navigate('/inicio');
 
     } catch (err) {
       if (err.response && err.response.data.detail) {
@@ -95,8 +91,6 @@ function Login() {
           </p>
         </div>
       </div>
-
-
 
       <div className="w-full md:w-1/2 flex items-center justify-center p-8 md:p-16">
         <div className="w-full max-w-md">
