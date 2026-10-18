@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  Lock,
 } from 'lucide-react';
 import { useTema, TEMAS } from '../context/TemaContext';
 
@@ -34,7 +35,6 @@ function Configuracion() {
   const [nombreEd, setNombreEd] = useState('');
   const [apellidoPEd, setApellidoPEd] = useState('');
   const [apellidoMEd, setApellidoMEd] = useState('');
-  const [emailEd, setEmailEd] = useState('');
   const [passwordEd, setPasswordEd] = useState('');
   const [confirmPasswordEd, setConfirmPasswordEd] = useState('');
   const [fotoEd, setFotoEd] = useState('');
@@ -45,7 +45,7 @@ function Configuracion() {
   const [guardando, setGuardando] = useState(false);
 
   const inputGray =
-    'w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg outline-none bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-default transition-all';
+    'w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg outline-none bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed transition-all';
   const inputEdit =
     'w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500';
 
@@ -62,7 +62,6 @@ function Configuracion() {
     setNombreEd(nombre);
     setApellidoPEd(apellidoPaterno);
     setApellidoMEd(apellidoMaterno);
-    setEmailEd(email);
     setFotoEd(foto);
     setFotoArchivo(null);
     setPasswordEd('');
@@ -81,10 +80,8 @@ function Configuracion() {
     e.target.value = '';
   };
 
-  // ¿Se está tocando algo sensible?
-  const hayCambioSensible =
-    (emailEd && emailEd !== email) ||
-    (passwordEd && passwordEd.length > 0);
+  // Solo contraseña cuenta como cambio sensible (el correo ya no se puede cambiar)
+  const hayCambioSensible = passwordEd && passwordEd.length > 0;
 
   const pedirConfirmacion = () => {
     if (!nombreEd || !apellidoPEd) {
@@ -92,10 +89,6 @@ function Configuracion() {
       return;
     }
     if (mostrarAvanzado) {
-      if (emailEd && !emailEd.includes('@')) {
-        setError('El correo no es válido.');
-        return;
-      }
       if (passwordEd && passwordEd !== confirmPasswordEd) {
         setError('Las contraseñas nuevas no coinciden.');
         return;
@@ -122,9 +115,8 @@ function Configuracion() {
         fotoUrl = fotoResp.data.foto + '?t=' + Date.now();
       }
 
-      // 2. Actualizar datos básicos (+ email si se abrió avanzado)
-      const emailFinal = mostrarAvanzado && emailEd ? emailEd : email;
-      const respPerfil = await axios.put(
+      // 2. Actualizar datos básicos (SIN email)
+      await axios.put(
         `http://127.0.0.1:8000/perfil/${usuarioGuardado.id}`,
         null,
         {
@@ -132,7 +124,6 @@ function Configuracion() {
             nombre: nombreEd,
             apellido_paterno: apellidoPEd,
             apellido_materno: apellidoMEd || '',
-            email: emailFinal,
           },
         }
       );
@@ -150,7 +141,6 @@ function Configuracion() {
       setNombre(nombreEd);
       setApellidoPaterno(apellidoPEd);
       setApellidoMaterno(apellidoMEd);
-      setEmail(emailFinal);
       setFoto(fotoUrl);
 
       localStorage.setItem(
@@ -160,7 +150,7 @@ function Configuracion() {
           nombre: nombreEd,
           apellido_paterno: apellidoPEd,
           apellido_materno: apellidoMEd || '',
-          email: emailFinal,
+          email: email, // se mantiene igual
           foto: fotoUrl,
         })
       );
@@ -271,6 +261,9 @@ function Configuracion() {
                   Correo Electrónico
                 </label>
                 <input type="email" value={email} disabled className={inputGray} />
+                <p className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                  <Lock size={12} /> El correo no se puede modificar por seguridad.
+                </p>
               </div>
             </div>
 
@@ -442,7 +435,7 @@ function Configuracion() {
               </div>
             </div>
 
-            {/* CAMPOS BÁSICOS (sin correo) */}
+            {/* CAMPOS BÁSICOS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 uppercase tracking-wide">
@@ -477,6 +470,17 @@ function Configuracion() {
                   className={inputEdit}
                 />
               </div>
+
+              {/* CORREO BLOQUEADO PARA TODOS */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1 uppercase tracking-wide">
+                  Correo Electrónico
+                </label>
+                <input type="email" value={email} disabled className={inputGray} />
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1 font-semibold">
+                  <Lock size={12} /> Por seguridad, el correo no se puede modificar.
+                </p>
+              </div>
             </div>
 
             {/* ERROR DENTRO DEL MODAL */}
@@ -486,7 +490,7 @@ function Configuracion() {
               </div>
             )}
 
-            {/* ENLACE TIPO "¿Olvidaste tu contraseña?" */}
+            {/* CONFIGURACIÓN AVANZADA: SOLO CONTRASEÑA */}
             <div className="text-center">
               <button
                 type="button"
@@ -494,34 +498,21 @@ function Configuracion() {
                 className="inline-flex items-center gap-1 text-sm font-semibold hover:underline transition-colors"
                 style={{ color: 'var(--color-primary)' }}
               >
-                {mostrarAvanzado ? 'Ocultar configuración avanzada' : 'Configuración avanzada'}
+                {mostrarAvanzado ? 'Ocultar cambio de contraseña' : 'Cambiar contraseña'}
                 {mostrarAvanzado ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
               {!mostrarAvanzado && (
                 <p className="text-xs text-slate-400 mt-1">
-                  Cambiar correo electrónico o contraseña
+                  Actualiza tu contraseña de acceso
                 </p>
               )}
             </div>
 
-            {/* CAMPOS AVANZADOS (correo + contraseña) */}
             {mostrarAvanzado && (
               <div className="flex flex-col gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  ⚠️ Datos sensibles — recuérdalos si los modificas
+                  ⚠️ Asegúrate de recordar tu nueva contraseña
                 </p>
-
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Correo Electrónico
-                  </label>
-                  <input
-                    type="email"
-                    value={emailEd}
-                    onChange={(e) => setEmailEd(e.target.value)}
-                    className={inputEdit}
-                  />
-                </div>
 
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -587,11 +578,9 @@ function Configuracion() {
                 ¿Deseas realizar los cambios?
               </h3>
 
-              {/* Aviso SOLO si cambia correo o contraseña */}
               {hayCambioSensible ? (
                 <p className="text-sm text-amber-600 dark:text-amber-400 font-semibold mb-3 leading-relaxed">
-                  Es importante que recuerdes la información, ya que estás modificando tu{' '}
-                  <strong>correo electrónico</strong> y/o tu <strong>contraseña</strong>.
+                  Estás modificando tu <strong>contraseña</strong>. Asegúrate de recordarla.
                 </p>
               ) : (
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
