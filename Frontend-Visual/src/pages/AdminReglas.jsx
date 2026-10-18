@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Scale, Plus, Edit, Trash2, Check, Activity, FilePlus } from 'lucide-react';
+import { Scale, Plus, Edit, Trash2, Check, Activity, FilePlus, AlertCircle, CheckCircle, X, AlertTriangle, Save } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
 
@@ -14,6 +14,13 @@ function AdminReglas() {
   const [mostrarFormularioRegla, setMostrarFormularioRegla] = useState(false);
   const [mostrarFormularioTipo, setMostrarFormularioTipo] = useState(false);
   const [editandoRegla, setEditandoRegla] = useState(null);
+  
+  // Notificaciones y Confirmaciones
+  const [notificacion, setNotificacion] = useState({ mostrar: false, mensaje: '', tipo: 'exito' });
+  const [modalConfirmacion, setModalConfirmacion] = useState({ mostrar: false, idRegla: null });
+  
+  // NUEVO ESTADO: Para confirmar guardado (de regla o de tipo de documento)
+  const [modalConfirmacionGuardar, setModalConfirmacionGuardar] = useState({ mostrar: false, accion: null });
   
   const { modoOscuro } = useTema();
   const miUsuario = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -31,6 +38,13 @@ function AdminReglas() {
     nombre: '',
     descripcion: ''
   });
+
+  const mostrarMensaje = (mensaje, tipo = 'exito') => {
+    setNotificacion({ mostrar: true, mensaje, tipo });
+    setTimeout(() => {
+      setNotificacion(prev => ({ ...prev, mostrar: false }));
+    }, 3000);
+  };
 
   const cargarDatos = async () => {
     setCargando(true);
@@ -50,6 +64,7 @@ function AdminReglas() {
       }
     } catch (err) {
       console.error('Error al cargar datos', err);
+      mostrarMensaje('Error al cargar la información', 'error');
     } finally {
       setCargando(false);
     }
@@ -81,8 +96,15 @@ function AdminReglas() {
   // -----------------------------------------------------
   // GUARDAR / EDITAR REGLA JURÍDICA
   // -----------------------------------------------------
-  const handleSubmitRegla = async (e) => {
+  // 1. Intercepta el submit y abre el modal de confirmación
+  const handleSubmitRegla = (e) => {
     e.preventDefault();
+    setModalConfirmacionGuardar({ mostrar: true, accion: 'regla' });
+  };
+
+  // 2. Función real que hace la petición al backend (si dice que sí)
+  const ejecutarGuardarRegla = async () => {
+    setModalConfirmacionGuardar({ mostrar: false, accion: null });
     try {
       if (editandoRegla) {
         await axios.put(`http://127.0.0.1:8000/api/admin/reglas/${editandoRegla.id}`, null, {
@@ -93,7 +115,7 @@ function AdminReglas() {
             es_obligatoria: formDataRegla.es_obligatoria
           }
         });
-        alert('Regla actualizada correctamente');
+        mostrarMensaje('Regla actualizada correctamente', 'exito');
       } else {
         await axios.post('http://127.0.0.1:8000/api/admin/reglas', null, {
           params: {
@@ -104,21 +126,28 @@ function AdminReglas() {
             es_obligatoria: formDataRegla.es_obligatoria
           }
         });
-        alert('Regla creada correctamente');
+        mostrarMensaje('Regla creada correctamente', 'exito');
       }
       
       cancelarEdicionRegla();
       cargarReglas(tipoSeleccionado);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error al guardar la regla');
+      mostrarMensaje(err.response?.data?.detail || 'Error al guardar la regla', 'error');
     }
   };
 
   // -----------------------------------------------------
   // GUARDAR NUEVO TIPO DE DOCUMENTO
   // -----------------------------------------------------
-  const handleSubmitTipo = async (e) => {
+  // 1. Intercepta el submit y abre el modal
+  const handleSubmitTipo = (e) => {
     e.preventDefault();
+    setModalConfirmacionGuardar({ mostrar: true, accion: 'tipo' });
+  };
+
+  // 2. Función real
+  const ejecutarGuardarTipo = async () => {
+    setModalConfirmacionGuardar({ mostrar: false, accion: null });
     try {
       const res = await axios.post('http://127.0.0.1:8000/api/admin/tipos-documento', null, {
         params: {
@@ -127,17 +156,16 @@ function AdminReglas() {
           descripcion: formDataTipo.descripcion
         }
       });
-      alert('Tipo de documento registrado exitosamente');
+      mostrarMensaje('Tipo de documento registrado exitosamente', 'exito');
       setFormDataTipo({ nombre: '', descripcion: '' });
       setMostrarFormularioTipo(false);
       
-      // Recargar la lista y seleccionar el nuevo
       await cargarDatos();
       if (res.data?.id) {
         setTipoSeleccionado(res.data.id);
       }
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error al registrar el tipo de documento');
+      mostrarMensaje(err.response?.data?.detail || 'Error al registrar el tipo de documento', 'error');
     }
   };
 
@@ -152,16 +180,21 @@ function AdminReglas() {
     setMostrarFormularioRegla(true);
   };
 
-  const eliminarRegla = async (id) => {
-    if (!window.confirm('¿Seguro que deseas eliminar esta regla jurídica?')) return;
+  const solicitarEliminarRegla = (id) => {
+    setModalConfirmacion({ mostrar: true, idRegla: id });
+  };
+
+  const confirmarEliminacion = async () => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/admin/reglas/${id}`, {
+      await axios.delete(`http://127.0.0.1:8000/api/admin/reglas/${modalConfirmacion.idRegla}`, {
         params: { admin_id: miUsuario.id }
       });
-      alert('Regla eliminada');
+      mostrarMensaje('Regla eliminada exitosamente', 'exito');
       cargarReglas(tipoSeleccionado);
     } catch (err) {
-      alert('Error al eliminar');
+      mostrarMensaje('Error al eliminar la regla', 'error');
+    } finally {
+      setModalConfirmacion({ mostrar: false, idRegla: null });
     }
   };
 
@@ -195,18 +228,33 @@ function AdminReglas() {
   return (
     <div className={`flex-1 flex flex-col overflow-y-auto transition-colors duration-300 ${modoOscuro ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
       
+      {/* TOAST DE NOTIFICACIÓN */}
+      {notificacion.mostrar && (
+        <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 opacity-100 ${
+          notificacion.tipo === 'exito' 
+            ? 'bg-emerald-600 text-white' 
+            : 'bg-red-600 text-white'
+        }`}>
+          {notificacion.tipo === 'exito' ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
+          <p className="font-semibold">{notificacion.mensaje}</p>
+          <button 
+            onClick={() => setNotificacion({...notificacion, mostrar: false})}
+            className="ml-2 hover:bg-white/20 p-1 rounded-full transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       <PageHeader
         titulo="Gestión de Reglas Jurídicas"
         subtitulo="Administra los tipos de documento y las reglas que usa la IA para validarlos."
       />
 
-      {/* CONTENIDO */}
       <main className="p-10 pt-0 w-full flex flex-col gap-8">
         
-        {/* BARRA SUPERIOR: Selector + Botones de Acción */}
+        {/* BARRA SUPERIOR */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          
-          {/* Selector de Tipo de Documento */}
           <div className="w-full lg:w-auto">
             <label className={`block text-sm font-semibold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
               Tipo de documento a consultar:
@@ -222,7 +270,6 @@ function AdminReglas() {
             </select>
           </div>
           
-          {/* Botones */}
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <button
               onClick={() => setMostrarFormularioTipo(true)}
@@ -241,6 +288,70 @@ function AdminReglas() {
             </button>
           </div>
         </div>
+
+        {/* ========================================================
+            MODAL: CONFIRMAR GUARDADO (NUEVO) 
+            ======================================================== */}
+        {modalConfirmacionGuardar.mostrar && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setModalConfirmacionGuardar({mostrar: false, accion: null})} />
+            <div className={`relative rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+              <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center rounded-full mb-4">
+                <Save size={32} />
+              </div>
+              <h3 className="text-xl font-black mb-2">¿Guardar cambios?</h3>
+              <p className={`mb-6 ${modoOscuro ? 'text-slate-300' : 'text-slate-600'}`}>
+                {modalConfirmacionGuardar.accion === 'regla' 
+                  ? '¿Estás seguro de que deseas guardar esta regla jurídica en el sistema?'
+                  : '¿Estás seguro de que deseas registrar este nuevo tipo de documento?'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setModalConfirmacionGuardar({mostrar: false, accion: null})}
+                  className={`flex-1 py-3 font-bold rounded-xl transition-colors ${modoOscuro ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}
+                >
+                  Revisar
+                </button>
+                <button
+                  onClick={modalConfirmacionGuardar.accion === 'regla' ? ejecutarGuardarRegla : ejecutarGuardarTipo}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md"
+                >
+                  Sí, guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: CONFIRMAR ELIMINACIÓN */}
+        {modalConfirmacion.mostrar && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setModalConfirmacion({mostrar: false, idRegla: null})} />
+            <div className={`relative rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
+              <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center rounded-full mb-4">
+                <AlertTriangle size={32} />
+              </div>
+              <h3 className="text-xl font-black mb-2">¿Eliminar regla?</h3>
+              <p className={`mb-6 ${modoOscuro ? 'text-slate-300' : 'text-slate-600'}`}>
+                Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta regla jurídica?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setModalConfirmacion({mostrar: false, idRegla: null})}
+                  className={`flex-1 py-3 font-bold rounded-xl transition-colors ${modoOscuro ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarEliminacion}
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors shadow-md"
+                >
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MODAL 1: REGISTRAR NUEVO TIPO DE DOCUMENTO */}
         {mostrarFormularioTipo && (
@@ -290,7 +401,7 @@ function AdminReglas() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-md"
                   >
                     Registrar Tipo
                   </button>
@@ -310,8 +421,6 @@ function AdminReglas() {
               </h2>
               
               <form onSubmit={handleSubmitRegla} className="space-y-5">
-                
-                {/* SELECTOR DE TIPO DENTRO DEL FORMULARIO */}
                 {!editandoRegla && (
                   <div>
                     <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>
@@ -395,7 +504,7 @@ function AdminReglas() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors"
+                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md"
                   >
                     {editandoRegla ? 'Actualizar Regla' : 'Guardar Regla'}
                   </button>
@@ -426,7 +535,6 @@ function AdminReglas() {
                       <span className="font-bold text-base">{r.nombre_clausula}</span>
                     </td>
 
-                    {/* MUESTRA EL NOMBRE DEL TIPO EN LUGAR DE "TIPO ID: 1" */}
                     <td className="p-4">
                       <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${modoOscuro ? 'bg-blue-900/40 text-blue-300 border border-blue-800' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
                         {obtenerNombreTipo(r.tipo_documento_id)}
@@ -461,7 +569,7 @@ function AdminReglas() {
                           <Edit size={18} />
                         </button>
                         <button
-                          onClick={() => eliminarRegla(r.id)}
+                          onClick={() => solicitarEliminarRegla(r.id)}
                           className="p-2 bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60 rounded-lg transition-colors"
                           title="Eliminar"
                         >
