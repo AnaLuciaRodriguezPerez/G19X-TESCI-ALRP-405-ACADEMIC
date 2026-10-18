@@ -257,14 +257,12 @@ def cambiar_contrasena(
 
 # ENDPOINT: Actualizar datos del perfil
 
-
 @app.put("/perfil/{usuario_id}")
 def actualizar_perfil(
     usuario_id: int,
     nombre: str,
     apellido_paterno: str,
     apellido_materno: str,
-    email: str,
     db: Session = Depends(get_db),
 ):
     usuario = (
@@ -273,18 +271,9 @@ def actualizar_perfil(
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    correo_existente = (
-        db.query(models.Usuario)
-        .filter(models.Usuario.email == email, models.Usuario.id != usuario_id)
-        .first()
-    )
-    if correo_existente:
-        raise HTTPException(status_code=400, detail="El correo ya está en uso")
-
     usuario.nombre = nombre
     usuario.apellido_paterno = apellido_paterno
     usuario.apellido_materno = apellido_materno
-    usuario.email = email
 
     db.commit()
     db.refresh(usuario)
@@ -298,6 +287,7 @@ def actualizar_perfil(
             "apellido_materno": usuario.apellido_materno,
             "email": usuario.email,
             "foto": usuario.foto,
+            "rol": usuario.rol,
         },
     }
 
