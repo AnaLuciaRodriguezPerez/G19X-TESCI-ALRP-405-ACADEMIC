@@ -1,4 +1,4 @@
-# Nombre de mi proyecto
+# Sistema de Validación Documental Basado en Reglas Jurídicas
 
 **Alumno:** Ana Lucía Rodríguez Pérez **Matrícula:** G19X-TESCI-ALRP-405
 **Institución:** Tecnológico de Estudios Superiores de Cuautitlán Izcalli
