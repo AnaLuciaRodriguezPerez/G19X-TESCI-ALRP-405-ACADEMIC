@@ -10,6 +10,13 @@ import fitz
 import google.generativeai as genai
 
 
+#Importaciones paraa mejor seguridad
+
+from seguridad import crear_token_acceso, get_current_user, get_current_admin
+
+import documentos
+
+
 # IMPORTS PARA CORREOS Y RECUPERACIÓN
 
 
@@ -38,6 +45,8 @@ from sqlalchemy.orm import Session
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="DocuVerify API")
+
+app.include_router(documentos.router)
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("uploads/documentos", exist_ok=True)
@@ -168,11 +177,8 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
         .first()
     )
 
-    if not usuario:
-        raise HTTPException(status_code=400, detail="Correo no registrado")
-
-    if not verify_password(contrasena, usuario.contrasena):
-        raise HTTPException(status_code=400, detail="Contraseña incorrecta")
+    if not usuario or not verify_password(contrasena, usuario.contrasena):
+        raise HTTPException(status_code=400, detail="Correo o contraseña incorrectos")
     
     if not usuario.activo:
         raise HTTPException(status_code=403, detail="Tu cuenta ha sido bloqueada por un administrador.")
@@ -180,11 +186,20 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
     if not usuario.email_verificado:
         raise HTTPException(
             status_code=403,
-            detail="Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.",
+            detail="Debes verificar tu correo electrónico antes de iniciar sesión.",
         )
+
+    # Creamos el Token JWT con el ID y ROL del usuario
+    access_token_expires = timedelta(minutes=60 * 24)  # 24 horas
+    access_token = crear_token_acceso(
+        data={"sub": str(usuario.id), "rol": usuario.rol},
+        expires_delta=access_token_expires
+    )
 
     return {
         "mensaje": "Inicio de sesión exitoso",
+        "access_token": access_token,  # 👈 Token de acceso
+        "token_type": "bearer",
         "usuario": {
             "id": usuario.id,
             "nombre": usuario.nombre,
@@ -192,7 +207,7 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
             "apellido_materno": usuario.apellido_materno,
             "email": usuario.email,
             "foto": usuario.foto,
-             "rol": usuario.rol, 
+            "rol": usuario.rol, 
         },
     }
 
@@ -239,6 +254,8 @@ async def subir_foto_perfil(
         }
     }
 
+
+# cambiar contraseña
 
 @app.post("/perfil/{usuario_id}/password")
 def cambiar_contrasena(
