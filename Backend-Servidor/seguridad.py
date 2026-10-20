@@ -13,7 +13,6 @@ import models
 
 load_dotenv()
 
-# Variables secretas (agrega JWT_SECRET_KEY a tu .env)
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "accesoseguroparaeliniciodedocuverify@")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas
