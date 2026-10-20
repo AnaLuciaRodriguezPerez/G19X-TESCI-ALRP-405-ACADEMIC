@@ -186,10 +186,10 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
     if not usuario.email_verificado:
         raise HTTPException(
             status_code=403,
-            detail="Debes verificar tu correo electrónico antes de iniciar sesión.",
+            detail="Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.",
         )
 
-    # Creamos el Token JWT con el ID y ROL del usuario
+    # Creamos el Token JWT
     access_token_expires = timedelta(minutes=60 * 24)  # 24 horas
     access_token = crear_token_acceso(
         data={"sub": str(usuario.id), "rol": usuario.rol},
@@ -198,7 +198,7 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
 
     return {
         "mensaje": "Inicio de sesión exitoso",
-        "access_token": access_token,  # 👈 Token de acceso
+        "access_token": access_token,
         "token_type": "bearer",
         "usuario": {
             "id": usuario.id,
@@ -207,7 +207,7 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
             "apellido_materno": usuario.apellido_materno,
             "email": usuario.email,
             "foto": usuario.foto,
-            "rol": usuario.rol, 
+            "rol": usuario.rol,
         },
     }
 
@@ -215,96 +215,90 @@ def login(email: str, contrasena: str, db: Session = Depends(get_db)):
 # ENDPOINT: Subir / Actualizar Foto de Perfil
 
 
-@app.post("/perfil/{usuario_id}/foto")
+@app.post("/perfil/foto")
 async def subir_foto_perfil(
-    usuario_id: int,
-    archivo: UploadFile = File(...), 
-    db: Session = Depends(get_db)
+    archivo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    usuario_actual: models.Usuario = Depends(get_current_user)
 ):
-    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
     if not archivo.content_type or not archivo.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Solo se permiten archivos de imagen")
 
     extensio = archivo.filename.split(".")[-1] if "." in archivo.filename else "png"
-    nombre_foto = f"usuario_{usuario_id}_{uuid.uuid4().hex[:8]}.{extensio}"
+    nombre_foto = f"usuario_{usuario_actual.id}_{uuid.uuid4().hex[:8]}.{extensio}"
     ruta_guardado = os.path.join("uploads", nombre_foto)
 
     with open(ruta_guardado, "wb") as buffer:
         shutil.copyfileobj(archivo.file, buffer)
 
-    url_foto = f"http://127.0.0.1:8000/uploads/{nombre_foto}"
-    usuario.foto = url_foto
+    BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+    url_foto = f"{BACKEND_URL}/uploads/{nombre_foto}"
+    usuario_actual.foto = url_foto
 
     db.commit()
-    db.refresh(usuario)
+    db.refresh(usuario_actual)
 
     return {
         "mensaje": "Foto de perfil actualizada correctamente",
         "foto": url_foto,
         "usuario": {
-            "id": usuario.id,
-            "nombre": usuario.nombre,
-            "apellido_paterno": usuario.apellido_paterno,
-            "apellido_materno": usuario.apellido_materno,
-            "email": usuario.email,
-            "foto": usuario.foto
+            "id": usuario_actual.id,
+            "nombre": usuario_actual.nombre,
+            "apellido_paterno": usuario_actual.apellido_paterno,
+            "apellido_materno": usuario_actual.apellido_materno,
+            "email": usuario_actual.email,
+            "foto": usuario_actual.foto
         }
     }
 
 
-# cambiar contraseña
+# Cambiar contraseña
 
-@app.post("/perfil/{usuario_id}/password")
+@app.post("/perfil/password")
 def cambiar_contrasena(
-    usuario_id: int,
     contrasena: str = Form(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_actual: models.Usuario = Depends(get_current_user)
 ):
-    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    usuario.contrasena = hash_password(contrasena)
+    errores = validar_contrasena(contrasena)
+    if errores:
+        raise HTTPException(
+            status_code=400,
+            detail="La contraseña no cumple los requisitos: " + ", ".join(errores)
+        )
+    usuario_actual.contrasena = hash_password(contrasena)
     db.commit()
     return {"mensaje": "Contraseña actualizada correctamente"}
 
 
+
 # ENDPOINT: Actualizar datos del perfil
 
-@app.put("/perfil/{usuario_id}")
+@app.put("/perfil")
 def actualizar_perfil(
-    usuario_id: int,
     nombre: str,
     apellido_paterno: str,
     apellido_materno: str,
     db: Session = Depends(get_db),
+    usuario_actual: models.Usuario = Depends(get_current_user)
 ):
-    usuario = (
-        db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
-    )
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    usuario.nombre = nombre
-    usuario.apellido_paterno = apellido_paterno
-    usuario.apellido_materno = apellido_materno
+    usuario_actual.nombre = nombre
+    usuario_actual.apellido_paterno = apellido_paterno
+    usuario_actual.apellido_materno = apellido_materno
 
     db.commit()
-    db.refresh(usuario)
+    db.refresh(usuario_actual)
 
     return {
         "mensaje": "Perfil actualizado correctamente",
         "usuario": {
-            "id": usuario.id,
-            "nombre": usuario.nombre,
-            "apellido_paterno": usuario.apellido_paterno,
-            "apellido_materno": usuario.apellido_materno,
-            "email": usuario.email,
-            "foto": usuario.foto,
-            "rol": usuario.rol,
+            "id": usuario_actual.id,
+            "nombre": usuario_actual.nombre,
+            "apellido_paterno": usuario_actual.apellido_paterno,
+            "apellido_materno": usuario_actual.apellido_materno,
+            "email": usuario_actual.email,
+            "foto": usuario_actual.foto,
+            "rol": usuario_actual.rol,
         },
     }
 
@@ -444,13 +438,14 @@ class GuardarAnalisisRequest(BaseModel):
 
 
 @app.post("/api/historial/guardar")
-def guardar_analisis(body: GuardarAnalisisRequest, db: Session = Depends(get_db)):
-    usuario = db.query(models.Usuario).filter(models.Usuario.id == body.usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
+def guardar_analisis(
+    body: GuardarAnalisisRequest,
+    db: Session = Depends(get_db),
+    usuario_actual: models.Usuario = Depends(get_current_user)
+):
+    # Ignoramos el usuario_id que mande el frontend y usamos el del token
     nuevo_analisis = models.AnalisisResultado(
-        usuario_id=body.usuario_id,
+        usuario_id=usuario_actual.id,
         tipo_documento_id=body.tipo_documento_id or 1,
         nombre_archivo=body.nombre_archivo,
         resultado_ia=body.resultado_ia,
@@ -463,7 +458,6 @@ def guardar_analisis(body: GuardarAnalisisRequest, db: Session = Depends(get_db)
         "mensaje": "Análisis guardado exitosamente en el historial",
         "analisis_id": nuevo_analisis.id,
     }
-
 
 # INFORME DETALLADO
 
@@ -531,19 +525,18 @@ Responde SOLO el texto del mensaje (sin JSON, sin markdown de código).
 # ENDPOINT: Obtener Historial del Usuario
 
 
-@app.get("/api/historial/{usuario_id}")
-def obtener_historial(usuario_id: int, db: Session = Depends(get_db)):
+@app.get("/api/historial")
+def obtener_historial(
+    db: Session = Depends(get_db),
+    usuario_actual: models.Usuario = Depends(get_current_user)
+):
     historial = (
         db.query(models.AnalisisResultado)
-        .filter(models.AnalisisResultado.usuario_id == usuario_id)
+        .filter(models.AnalisisResultado.usuario_id == usuario_actual.id)
         .order_by(models.AnalisisResultado.fecha_analisis.desc())
         .all()
     )
-    
-    if not historial:
-        return []
-        
-    return historial
+    return historial or []
 
 # CONFIGURACIÓN DE CORREO
 
@@ -881,7 +874,7 @@ def verificar_es_admin(admin_id: int, db: Session):
         raise HTTPException(status_code=403, detail="Acceso denegado. Permisos insuficientes.")
     return usuario
 
-# 1. Obtener Estadísticas (COMPLETO CON 5 GRÁFICAS)
+# 1. Obtener Estadísticas
 
 @app.get("/api/admin/estadisticas")
 def obtener_estadisticas_admin(admin_id: int, db: Session = Depends(get_db)):
