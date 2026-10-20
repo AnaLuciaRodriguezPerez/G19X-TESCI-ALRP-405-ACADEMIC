@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Users, FileText, CheckCircle, Scale, Activity, Layers } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
@@ -15,14 +15,13 @@ function AdminDashboard() {
   const [estadisticas, setEstadisticas] = useState(null);
   const [cargando, setCargando] = useState(true);
   const { modoOscuro } = useTema();
-  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
 
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/admin/estadisticas', { params: { admin_id: usuario.id } })
+    api.get('/api/admin/estadisticas') 
       .then(res => setEstadisticas(res.data))
       .catch(err => console.error(err))
       .finally(() => setCargando(false));
-  }, [usuario.id]);
+  }, []);
 
   if (cargando) {
     return (
@@ -35,7 +34,6 @@ function AdminDashboard() {
   const textColor = modoOscuro ? '#cbd5e1' : '#475569';
   const gridColor = modoOscuro ? '#334155' : '#e2e8f0';
 
-  // gráfica de Cuentas
   const datosDona = {
     labels: ['Verificadas', 'Pendientes'],
     datasets: [{
@@ -45,7 +43,6 @@ function AdminDashboard() {
     }],
   };
 
-  // gráfica de análisis general
   const datosLinea = {
     labels: estadisticas?.grafico_meses || [],
     datasets: [{
@@ -58,7 +55,6 @@ function AdminDashboard() {
     }],
   };
 
-  // gráfica de nivel de riesgo
   const datosPastel = {
     labels: estadisticas?.grafico_riesgos_labels || [],
     datasets: [{
@@ -68,7 +64,6 @@ function AdminDashboard() {
     }],
   };
 
-  // gráficas de cláusulas faltantes
   const datosBarras = {
     labels: estadisticas?.grafico_clausulas_labels || [],
     datasets: [{
@@ -79,13 +74,12 @@ function AdminDashboard() {
     }],
   };
 
-  // NUEVA: gráfica de análisis por TIPO DE DOCUMENTO
   const datosTipos = {
     labels: estadisticas?.grafico_tipos_labels || [],
     datasets: [{
       label: 'Cantidad Analizada',
       data: estadisticas?.grafico_tipos_valores || [],
-      backgroundColor: '#14b8a6', // Color Teal para diferenciarlo
+      backgroundColor: '#14b8a6',
       borderRadius: 6,
     }],
   };
@@ -97,15 +91,8 @@ function AdminDashboard() {
 
   return (
     <div className={`flex-1 flex flex-col overflow-y-auto transition-colors duration-300 ${modoOscuro ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
-      
-      <PageHeader
-        titulo="Panel General"
-        subtitulo="Métricas avanzadas de IA y Plataforma."
-      />
-
+      <PageHeader titulo="Panel General" subtitulo="Métricas avanzadas de IA y Plataforma." />
       <main className="p-10 pt-0 w-full flex flex-col gap-6">
-
-        {/* --- TARJETAS SUPERIORES (Ahora son 5) --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
           <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-blue-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
             <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>TOTAL USUARIOS</p>
@@ -135,7 +122,6 @@ function AdminDashboard() {
               <Scale size={28} className="text-orange-500" />
             </div>
           </div>
-          {/* NUEVA TARJETA: Tipos de Documento */}
           <div className={`p-6 rounded-2xl shadow-lg border-t-4 border-teal-500 ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
             <p className={`text-sm font-bold mb-1 ${modoOscuro ? 'text-slate-400' : 'text-slate-500'}`}>TIPOS DE DOCS.</p>
             <div className="flex justify-between items-center">
@@ -145,7 +131,6 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* --- PRIMERA FILA DE GRÁFICAS --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className={`p-6 rounded-2xl shadow-lg ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
             <h3 className="text-lg font-bold mb-4">Estado de Usuarios</h3>
@@ -159,7 +144,6 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* --- SEGUNDA FILA DE GRÁFICAS --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className={`p-6 rounded-2xl shadow-lg ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
             <h3 className="text-lg font-bold mb-4">Diagnóstico General (Riesgo)</h3>
@@ -177,28 +161,16 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* --- TERCERA FILA (NUEVA): ANÁLISIS POR TIPO DE DOCUMENTO --- */}
         <div className={`p-6 rounded-2xl shadow-lg w-full ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
           <h3 className="text-lg font-bold mb-4">Documentos Analizados por Tipo</h3>
           <div className="h-72 flex flex-col justify-center">
             {estadisticas?.grafico_tipos_labels?.length > 0 ? (
-              <Bar 
-                data={datosTipos} 
-                options={{
-                  ...opcionesBase, 
-                  plugins: { legend: { display: false } }, 
-                  scales: { 
-                    y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } }, 
-                    x: { grid: { display: false }, ticks: { color: textColor } } 
-                  } 
-                }} 
-              />
+              <Bar data={datosTipos} options={{...opcionesBase, plugins: { legend: { display: false } }, scales: { y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } }, x: { grid: { display: false }, ticks: { color: textColor } } } }} />
             ) : (
               <p className="text-center text-slate-500 italic">No hay documentos analizados por tipo aún.</p>
             )}
           </div>
         </div>
-
       </main>
     </div>
   );
