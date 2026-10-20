@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api'; 
 import { FileText, Search, Activity } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
@@ -10,14 +10,10 @@ function AdminHistorial() {
   const [busqueda, setBusqueda] = useState('');
   const { modoOscuro } = useTema();
 
-  const miUsuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-
   useEffect(() => {
     const cargarHistorial = async () => {
       try {
-        const res = await axios.get('http://127.0.0.1:8000/api/admin/historial-global', {
-          params: { admin_id: miUsuario.id }
-        });
+        const res = await api.get('/api/admin/historial-global');
         setAnalisis(res.data);
       } catch (err) {
         console.error('Error al cargar historial', err);
@@ -26,8 +22,8 @@ function AdminHistorial() {
       }
     };
 
-    if (miUsuario.id) cargarHistorial();
-  }, [miUsuario.id]);
+    cargarHistorial();
+  }, []);
 
   const analisisFiltrados = analisis.filter(a => 
     a.nombre_archivo.toLowerCase().includes(busqueda.toLowerCase()) || 
