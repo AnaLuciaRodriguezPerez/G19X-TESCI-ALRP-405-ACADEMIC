@@ -78,7 +78,7 @@ class AnalisisResultado(Base):
     tipo_documento = relationship("TipoDocumento", back_populates="analisis")
 
 
-# Campo para saber si el correo fue verificado
+# Campo para saber si el correo fue verificados
 # 5. Tabla de tokens para VERIFICAR el correo
 
 class TokenVerificacion(Base):
