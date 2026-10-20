@@ -1,23 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, AlertTriangle, CheckCircle, Info, Eye, Lightbulb, X } from 'lucide-react';
+import api from '../api';
 
 function Historial() {
   const [historial, setHistorial] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [informeSeleccionado, setInformeSeleccionado] = useState(null);
 
-  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-
-  // Cargar historial desde PostgreSQL
   useEffect(() => {
     const cargarHistorial = async () => {
-      if (!usuario.id) return;
       try {
-        const respuesta = await fetch(`http://127.0.0.1:8000/api/historial/${usuario.id}`);
-        if (respuesta.ok) {
-          const datos = await respuesta.json();
-          setHistorial(datos);
-        }
+        const respuesta = await api.get('/api/historial');
+        setHistorial(respuesta.data);
       } catch (error) {
         console.error("Error al cargar el historial:", error);
       } finally {
@@ -25,7 +19,7 @@ function Historial() {
       }
     };
     cargarHistorial();
-  }, [usuario.id]);
+  }, []);
 
   const getEstadoColor = (estado) => {
     if (estado?.includes('Aprobado')) return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300';
