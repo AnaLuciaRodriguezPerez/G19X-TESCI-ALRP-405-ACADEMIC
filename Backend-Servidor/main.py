@@ -867,19 +867,18 @@ def obtener_tipos_documento_publico(db: Session = Depends(get_db)):
 
 # EXCLUSIV0 PARA ADMINISTRADORES
 
-def verificar_es_admin(admin_id: int, db: Session):
-    """Función de seguridad: Verifica que el usuario que pide los datos sea realmente un Admin"""
-    usuario = db.query(models.Usuario).filter(models.Usuario.id == admin_id).first()
-    if not usuario or usuario.rol != "admin":
-        raise HTTPException(status_code=403, detail="Acceso denegado. Permisos insuficientes.")
-    return usuario
+#(se borro lo que verificaba si era admin)
 
-# 1. Obtener Estadísticas
+from seguridad import get_current_admin
+
+
+# 1. Obtener Estadísticas (COMPLETO CON 5 GRÁFICAS)
 
 @app.get("/api/admin/estadisticas")
-def obtener_estadisticas_admin(admin_id: int, db: Session = Depends(get_db)):
-    verificar_es_admin(admin_id, db)
-
+def obtener_estadisticas_admin(
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
     total_usuarios = db.query(models.Usuario).count()
     usuarios_verificados = db.query(models.Usuario).filter(models.Usuario.email_verificado == True).count()
     usuarios_no_verificados = total_usuarios - usuarios_verificados
@@ -947,12 +946,14 @@ def obtener_estadisticas_admin(admin_id: int, db: Session = Depends(get_db)):
         "grafico_tipos_valores": list(analisis_por_tipo.values()),
     }
 
+
 # 2. Obtener la lista de TODOS los usuarios
 
 @app.get("/api/admin/usuarios")
-def obtener_todos_los_usuarios(admin_id: int, db: Session = Depends(get_db)):
-    verificar_es_admin(admin_id, db)
-    
+def obtener_todos_los_usuarios(
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
     usuarios = db.query(models.Usuario).all()
     lista_segura = []
     for u in usuarios:
@@ -967,18 +968,17 @@ def obtener_todos_los_usuarios(admin_id: int, db: Session = Depends(get_db)):
         })
     return lista_segura
 
+
 # 3. Cambiar el rol de un usuario
 
 @app.put("/api/admin/usuarios/{usuario_target_id}/rol")
 def cambiar_rol_usuario(
     usuario_target_id: int, 
     nuevo_rol: str, 
-    admin_id: int, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
 ):
-    verificar_es_admin(admin_id, db)
-    
-    if usuario_target_id == admin_id:
+    if usuario_target_id == admin_actual.id:
         raise HTTPException(status_code=400, detail="No puedes cambiar tu propio rol por seguridad.")
         
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_target_id).first()
@@ -989,13 +989,16 @@ def cambiar_rol_usuario(
     db.commit()
     return {"mensaje": f"Rol actualizado a {nuevo_rol} exitosamente."}
 
+
 # 4. Eliminar un usuario permanentemente
 
 @app.delete("/api/admin/usuarios/{usuario_target_id}")
-def eliminar_usuario(usuario_target_id: int, admin_id: int, db: Session = Depends(get_db)):
-    verificar_es_admin(admin_id, db)
-    
-    if usuario_target_id == admin_id:
+def eliminar_usuario(
+    usuario_target_id: int, 
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
+    if usuario_target_id == admin_actual.id:
         raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta desde aquí.")
         
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_target_id).first()
@@ -1006,18 +1009,17 @@ def eliminar_usuario(usuario_target_id: int, admin_id: int, db: Session = Depend
     db.commit()
     return {"mensaje": "Usuario eliminado permanentemente del sistema."}
 
+
 # 5. Bloquear o Desbloquear un usuario
 
 @app.put("/api/admin/usuarios/{usuario_target_id}/estado")
 def cambiar_estado_usuario(
     usuario_target_id: int, 
     activo: bool, 
-    admin_id: int, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
 ):
-    verificar_es_admin(admin_id, db)
-    
-    if usuario_target_id == admin_id:
+    if usuario_target_id == admin_actual.id:
         raise HTTPException(status_code=400, detail="No puedes bloquear tu propia cuenta.")
         
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_target_id).first()
@@ -1030,12 +1032,14 @@ def cambiar_estado_usuario(
     estado_texto = "activado" if activo else "bloqueado"
     return {"mensaje": f"Usuario {estado_texto} exitosamente."}
 
+
 # 6. Historial Global de Análisis
 
 @app.get("/api/admin/historial-global")
-def obtener_historial_global(admin_id: int, db: Session = Depends(get_db)):
-    verificar_es_admin(admin_id, db)
-    
+def obtener_historial_global(
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
     todos_analisis = db.query(models.AnalisisResultado).order_by(models.AnalisisResultado.fecha_analisis.desc()).all()
     
     lista_segura = []
@@ -1058,11 +1062,14 @@ def obtener_historial_global(admin_id: int, db: Session = Depends(get_db)):
         
     return lista_segura
 
+
 # 7. Obtener todos los tipos de documento
 
 @app.get("/api/admin/tipos-documento")
-def obtener_tipos_documento(admin_id: int, db: Session = Depends(get_db)):
-    verificar_es_admin(admin_id, db)
+def obtener_tipos_documento(
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
     tipos = db.query(models.TipoDocumento).all()
     return [{
         "id": t.id,
@@ -1071,17 +1078,16 @@ def obtener_tipos_documento(admin_id: int, db: Session = Depends(get_db)):
         "activo": t.activo
     } for t in tipos]
 
+
 # 8. Crear nuevo tipo de documento
 
 @app.post("/api/admin/tipos-documento")
 def crear_tipo_documento(
     nombre: str,
     descripcion: str,
-    admin_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
 ):
-    verificar_es_admin(admin_id, db)
-    
     existente = db.query(models.TipoDocumento).filter(
         models.TipoDocumento.nombre == nombre
     ).first()
@@ -1099,12 +1105,15 @@ def crear_tipo_documento(
     
     return {"mensaje": "Tipo de documento creado exitosamente", "id": nuevo_tipo.id}
 
+
 # 9. Obtener todas las reglas jurídicas
 
 @app.get("/api/admin/reglas")
-def obtener_reglas(admin_id: int, tipo_documento_id: int = None, db: Session = Depends(get_db)):
-    verificar_es_admin(admin_id, db)
-    
+def obtener_reglas(
+    tipo_documento_id: Optional[int] = None, 
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
     query = db.query(models.ReglaJuridica)
     if tipo_documento_id:
         query = query.filter(models.ReglaJuridica.tipo_documento_id == tipo_documento_id)
@@ -1120,6 +1129,7 @@ def obtener_reglas(admin_id: int, tipo_documento_id: int = None, db: Session = D
         "creado_en": r.creado_en.strftime("%Y-%m-%d") if r.creado_en else "N/A"
     } for r in reglas]
 
+
 # 10. Crear nueva regla jurídica
 
 @app.post("/api/admin/reglas")
@@ -1128,13 +1138,9 @@ def crear_regla(
     nombre_clausula: str,
     criterio_evaluacion: str,
     es_obligatoria: bool = True,
-    admin_id: int = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
 ):
-    # Verificar admin
-    if admin_id:
-        verificar_es_admin(admin_id, db)
-    
     tipo_doc = db.query(models.TipoDocumento).filter(
         models.TipoDocumento.id == tipo_documento_id
     ).first()
@@ -1153,6 +1159,7 @@ def crear_regla(
     
     return {"mensaje": "Regla jurídica creada exitosamente", "id": nueva_regla.id}
 
+
 # 11. Editar regla jurídica existente
 
 @app.put("/api/admin/reglas/{regla_id}")
@@ -1161,11 +1168,9 @@ def editar_regla(
     nombre_clausula: str,
     criterio_evaluacion: str,
     es_obligatoria: bool,
-    admin_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
 ):
-    verificar_es_admin(admin_id, db)
-    
     regla = db.query(models.ReglaJuridica).filter(
         models.ReglaJuridica.id == regla_id
     ).first()
@@ -1179,12 +1184,15 @@ def editar_regla(
     db.commit()
     return {"mensaje": "Regla actualizada exitosamente"}
 
+
 # 12. Eliminar regla jurídica
 
 @app.delete("/api/admin/reglas/{regla_id}")
-def eliminar_regla(regla_id: int, admin_id: int, db: Session = Depends(get_db)):
-    verificar_es_admin(admin_id, db)
-    
+def eliminar_regla(
+    regla_id: int, 
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
     regla = db.query(models.ReglaJuridica).filter(
         models.ReglaJuridica.id == regla_id
     ).first()
