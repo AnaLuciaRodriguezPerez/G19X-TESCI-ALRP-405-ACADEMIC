@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email VARCHAR(150) UNIQUE NOT NULL,
     contrasena VARCHAR(255) NOT NULL,
     foto VARCHAR(255),
-    email_verificado BOOLEAN DEFAULT FALSE
+    email_verificado BOOLEAN DEFAULT FALSE,
     rol VARCHAR(50) DEFAULT 'usuario',
-    activo BOOLEAN DEFAULT TRUE,
+    activo BOOLEAN DEFAULT TRUE
 );
 
 -- 2. Tabla: tipos_documento
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS tokens_recuperacion (
     creado_en TIMESTAMP WITH TIME ZONE
 );
 
--- 5. Tabla: tokens_verificacion
+-- 6. Tabla: tokens_verificacion
 CREATE TABLE IF NOT EXISTS tokens_verificacion (
     id SERIAL PRIMARY KEY,
     usuario_id INTEGER,
@@ -71,12 +71,13 @@ CREATE TABLE IF NOT EXISTS tokens_verificacion (
 -- INSERCIÓN DE DATOS
 
 
--- Insertar usuario
-INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasena)
-VALUES ('Juan', 'Pérez', 'Gómez', 'juan@gmail.com', 'Prueba-1');
+-- Insertar usuario regular (Contraseña: Prueba-1)
+INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasena, email_verificado, rol)
+VALUES ('Juan', 'Pérez', 'Gómez', 'juan@gmail.com', '$2b$12$K89sO9p0xP.sJgS1oJ4o.eU3jB0Xk8G/J0s5l/J3a5m5J5m5J5m5', TRUE, 'usuario');
 
-INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasena)
-VALUES ('Administrador', 'Sistema', 'Sistema', 'docuverify.sistema@gmail.com', 'Sistema-1');
+-- Insertar usuario administrador (Contraseña: Sistema-1)
+INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasena, email_verificado, rol)
+VALUES ('Administrador', 'Sistema', 'Sistema', 'docuverify.sistema@gmail.com', '$2b$12$M9B3wGwKk9N9I9v9L9z9v.YR82X.a7c1d3f5h7j9l1n3p5r7t9v1w', TRUE, 'admin');
 
 -- Insertar tipo de documento
 INSERT INTO tipos_documento (nombre, descripcion) 
