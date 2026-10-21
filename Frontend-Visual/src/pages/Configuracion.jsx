@@ -12,6 +12,7 @@ import {
   ChevronUp,
   Lock,
 } from 'lucide-react';
+import api from '../api';
 import { useTema, TEMAS } from '../context/TemaContext';
 
 function Configuracion() {
@@ -80,7 +81,7 @@ function Configuracion() {
     e.target.value = '';
   };
 
-  // Solo contraseña cuenta como cambio sensible (el correo ya no se puede cambiar)
+  // Solo contraseña 
   const hayCambioSensible = passwordEd && passwordEd.length > 0;
 
   const pedirConfirmacion = () => {
@@ -97,47 +98,36 @@ function Configuracion() {
     setMostrarConfirmacion(true);
   };
 
-  const ejecutarGuardado = async () => {
+
+    const ejecutarGuardado = async () => {
     setMostrarConfirmacion(false);
     setGuardando(true);
     try {
       let fotoUrl = foto;
 
-      // 1. Subir foto si hay archivo nuevo
       if (fotoArchivo) {
         const formData = new FormData();
         formData.append('archivo', fotoArchivo);
-        const fotoResp = await axios.post(
-          `http://127.0.0.1:8000/perfil/${usuarioGuardado.id}/foto`,
-          formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
-        );
+        const fotoResp = await api.post('/perfil/foto', formData, { 
+            headers: { 'Content-Type': 'multipart/form-data' } 
+        });
         fotoUrl = fotoResp.data.foto + '?t=' + Date.now();
       }
 
-      // 2. Actualizar datos básicos (SIN email)
-      await axios.put(
-        `http://127.0.0.1:8000/perfil/${usuarioGuardado.id}`,
-        null,
-        {
+      await api.put('/perfil', null, {
           params: {
             nombre: nombreEd,
             apellido_paterno: apellidoPEd,
             apellido_materno: apellidoMEd || '',
           },
-        }
-      );
+      });
 
-      // 3. Contraseña si se escribió
       if (passwordEd) {
-        await axios.post(
-          `http://127.0.0.1:8000/perfil/${usuarioGuardado.id}/password`,
-          new URLSearchParams({ contrasena: passwordEd }),
-          { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-        );
+        await api.post('/perfil/password', new URLSearchParams({ contrasena: passwordEd }), { 
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' } 
+        });
       }
 
-      // Actualizar UI y localStorage
       setNombre(nombreEd);
       setApellidoPaterno(apellidoPEd);
       setApellidoMaterno(apellidoMEd);
@@ -150,7 +140,7 @@ function Configuracion() {
           nombre: nombreEd,
           apellido_paterno: apellidoPEd,
           apellido_materno: apellidoMEd || '',
-          email: email, // se mantiene igual
+          email: email,
           foto: fotoUrl,
         })
       );
