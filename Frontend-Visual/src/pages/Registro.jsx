@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, Check, X } from 'lucide-react';
+import api from '../api';
 
 import logo from '../assets/logo.png';
 
@@ -26,7 +27,7 @@ function Registro() {
   const [mostrarModalExito, setMostrarModalExito] = useState(false); // Modal de éxito
 
 
-  // 👇 NUEVO: REQUISITOS DE CONTRASEÑA SEGURA
+  //REQUISITOS DE CONTRASEÑA SEGURA
 
 
   const requisitos = [
@@ -76,7 +77,7 @@ function Registro() {
     try {
       setCargando(true);
 
-      await axios.post('http://127.0.0.1:8000/registro', null, {
+      await api.post('/registro', null, {
         params: {
           nombre,
           apellido_paterno: apellidoPaterno,
