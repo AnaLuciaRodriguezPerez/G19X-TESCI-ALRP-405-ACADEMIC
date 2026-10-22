@@ -13,7 +13,13 @@ import models
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "accesoseguroparaeliniciodedocuverify@")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "Falta la variable JWT_SECRET_KEY en el archivo .env. "
+        "El servidor no puede arrancar sin ella."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas
 
