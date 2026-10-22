@@ -26,9 +26,8 @@ function AcuerdoConfidencialidad() {
   useEffect(() => {
     const cargarTipos = async () => {
       try {
-        const respuesta = await fetch('http://127.0.0.1:8000/api/tipos-documento');
-        const datos = await respuesta.json();
-        setTiposDocumento(datos);
+        const respuesta = await api.get('/api/tipos-documento');
+        setTiposDocumento(respuesta.data);
       } catch (error) {
         console.error('Error al cargar tipos de documento:', error);
       }
@@ -36,7 +35,7 @@ function AcuerdoConfidencialidad() {
     cargarTipos();
   }, []);
 
-  // ⏱️ Temporizador para los mensajes
+  // Temporizador para los mensajes
   useEffect(() => {
     if (!mensaje.texto) return;
     const temporizador = setTimeout(() => {
@@ -106,7 +105,7 @@ function AcuerdoConfidencialidad() {
     if (e.dataTransfer.files?.[0]) validarYSeleccionar(e.dataTransfer.files[0]);
   };
 
-  const analizarDocumento = () => {
+  const analizarDocumento = async () => {
     if (!archivo || !tipoSeleccionado) return;
 
     const formData = new FormData();
@@ -120,41 +119,30 @@ function AcuerdoConfidencialidad() {
     setResultado(null);
     setMostrarInforme(false);
 
-    const xhr = new XMLHttpRequest();
+    try {
+      const respuesta = await api.post('/api/documentos/analizar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (evento) => {
+          if (evento.total) {
+            const porcentaje = Math.round((evento.loaded / evento.total) * 100);
+            setProgreso(porcentaje);
+            if (porcentaje >= 100) setFaseCarga('analizando');
+          }
+        },
+      });
 
-    xhr.upload.onprogress = (evento) => {
-      if (evento.lengthComputable) {
-        const porcentaje = Math.round((evento.loaded / evento.total) * 100);
-        setProgreso(porcentaje);
-        if (porcentaje >= 100) setFaseCarga('analizando');
-      }
-    };
-
-    xhr.onload = () => {
+      setResultado(respuesta.data.resultado);
+      setMensaje({ tipo: 'exito', texto: '¡Análisis jurídico completado con éxito!' });
+    } catch (error) {
+      const msj =
+        error.response?.data?.detail ||
+        error.message ||
+        'Error al procesar el documento';
+      setMensaje({ tipo: 'error', texto: msj });
+    } finally {
       setCargando(false);
       setFaseCarga('');
-      if (xhr.status >= 200 && xhr.status < 300) {
-        const datos = JSON.parse(xhr.responseText);
-        setResultado(datos.resultado);
-        setMensaje({ tipo: 'exito', texto: '¡Análisis jurídico completado con éxito!' });
-      } else {
-        try {
-          const datos = JSON.parse(xhr.responseText);
-          setMensaje({ tipo: 'error', texto: datos.detail || 'Error al procesar el documento' });
-        } catch {
-          setMensaje({ tipo: 'error', texto: 'Error al procesar la respuesta del servidor' });
-        }
-      }
-    };
-
-    xhr.onerror = () => {
-      setCargando(false);
-      setFaseCarga('');
-      setMensaje({ tipo: 'error', texto: 'Error de red al conectar con el servidor' });
-    };
-
-    xhr.open('POST', 'http://127.0.0.1:8000/api/documentos/analizar');
-    xhr.send(formData);
+    }
   };
 
     const aceptarValidacion = async () => {
