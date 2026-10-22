@@ -93,7 +93,7 @@ def registrar_usuario(
     apellido_materno: str,
     email: str,
     contrasena: str,
-    background_tasks: BackgroundTasks,  # 👈 NUEVO: para enviar correo sin esperar
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     usuario_existente = (
@@ -309,9 +309,9 @@ def actualizar_perfil(
 @app.post("/api/documentos/analizar")
 async def analizar_documento(
     archivo: UploadFile = File(...),
-    usuario_id: Optional[int] = Form(None),
-    tipo_documento_id: int = Form(...),  
+    tipo_documento_id: int = Form(...),
     db: Session = Depends(get_db),
+    usuario_actual: models.Usuario = Depends(get_current_user),
 ):
     
     if not archivo.filename.lower().endswith(".pdf"):
@@ -470,11 +470,13 @@ class ConsultaDocumentoRequest(BaseModel):
     pregunta: str
     resultado_analisis: dict
     nombre_archivo: Optional[str] = None
-    tipo_documento_nombre: Optional[str] = "Documento Legal" # 👈 NUEVO: Recibe el nombre del documento
+    tipo_documento_nombre: Optional[str] = "Documento Legal" 
     historial: Optional[List[MensajeChat]] = []
 
 @app.post("/api/documentos/consultar")
-async def consultar_documento(body: ConsultaDocumentoRequest):
+async def consultar_documento(
+    body: ConsultaDocumentoRequest,
+    usuario_actual: models.Usuario = Depends(get_current_user),):
     pregunta = (body.pregunta or "").strip()
     if not pregunta:
         raise HTTPException(status_code=400, detail="Escribe una pregunta.")
