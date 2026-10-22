@@ -1,4 +1,6 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from seguridad import get_current_user
+import models
 from pathlib import Path
 import uuid
 
@@ -10,7 +12,10 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 TAMANO_MAXIMO = 10 * 1024 * 1024  # 10 MB
 
 @router.post("/subir")
-async def subir_documento(archivo: UploadFile = File(...)):
+async def subir_documento(
+    archivo: UploadFile = File(...),
+    usuario_actual: models.Usuario = Depends(get_current_user),
+):
     # 1. Validar extensión
     extension = Path(archivo.filename).suffix.lower()
     if extension != ".pdf":
