@@ -77,7 +77,7 @@ VALUES ('Elias', 'Pérez', 'Gómez', 'usuariodepruebasistema@gmail.com', '$2b$12
 
 -- Insertar usuario administrador (Contraseña: Sistema-1)
 INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasena, email_verificado, rol)
-VALUES ('Administrador', 'Sistema', 'Sistema', 'docuverify.sistema@gmail.com', '$2b$12$M9B3wGwKk9N9I9v9L9z9v.YR82X.a7c1d3f5h7j9l1n3p5r7t9v1w', TRUE, 'admin');
+VALUES ('Administrador', 'Sistema', 'Sistema', 'docuverify.sistema@gmail.com', '$2b$12$U3D79M2IXdmrVT2jO7mMneuPSM6Z32OM6Jg5ZeHKMiTp2Ig7DdzVK', TRUE, 'admin');
 
 -- Insertar tipo de documento
 INSERT INTO tipos_documento (nombre, descripcion) 
