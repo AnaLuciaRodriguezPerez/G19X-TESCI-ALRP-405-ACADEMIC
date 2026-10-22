@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Mail, ArrowLeft, Send, CheckCircle } from 'lucide-react';
-
-
-// Olvidaste tu contraseña
+import api from '../api';
 
 
 function OlvideContrasena() {
@@ -26,7 +24,7 @@ function OlvideContrasena() {
 
     try {
       setCargando(true);
-      const respuesta = await axios.post('http://127.0.0.1:8000/recuperar-contrasena', { email });
+      const respuesta = await api.post('/recuperar-contrasena', { email });
       setMensaje(respuesta.data.mensaje);
     } catch (err) {
       if (err.response && err.response.data.detail) {
