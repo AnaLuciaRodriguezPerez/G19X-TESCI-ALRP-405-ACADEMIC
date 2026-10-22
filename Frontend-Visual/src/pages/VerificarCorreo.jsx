@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, XCircle, Loader2, ArrowRight } from 'lucide-react';
+import api from '../api';
 
 
 // Verificar correo electrónico
@@ -24,7 +25,7 @@ function VerificarCorreo() {
 
     const verificar = async () => {
       try {
-        const respuesta = await axios.get('http://127.0.0.1:8000/verificar-correo', {
+        const respuesta = await api.get('/verificar-correo', {
           params: { token },
         });
         setEstado('exito');
