@@ -3,6 +3,7 @@ import {
   FileText, Upload, Search, CheckCircle, AlertTriangle, ShieldCheck,
   Loader2, Sparkles, FileSearch, Info, Eye, Lightbulb,
 } from 'lucide-react';
+import api from '../api';
 
 function AcuerdoConfidencialidad() {
   // --- Estados ---
@@ -156,7 +157,7 @@ function AcuerdoConfidencialidad() {
     xhr.send(formData);
   };
 
-  const aceptarValidacion = async () => {
+    const aceptarValidacion = async () => {
     if (!resultado) return;
     if (!usuario?.id) {
       setMensaje({ tipo: 'error', texto: 'No se encontró la sesión del usuario.' });
@@ -165,24 +166,21 @@ function AcuerdoConfidencialidad() {
 
     try {
       setCargando(true);
-      const respuesta = await fetch('http://127.0.0.1:8000/api/historial/guardar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          usuario_id: usuario.id,
-          nombre_archivo: archivo?.name || 'documento.pdf',
-          resultado_ia: resultado,
-          tipo_documento_id: parseInt(tipoSeleccionado),
-        }),
+    
+      await api.post('/api/historial/guardar', {
+        usuario_id: usuario.id,
+        nombre_archivo: archivo?.name || 'documento.pdf',
+        resultado_ia: resultado,
+        tipo_documento_id: parseInt(tipoSeleccionado),
       });
-
-      if (!respuesta.ok) throw new Error('No se pudo guardar el análisis');
 
       reiniciarTodo();
       setMensaje({ tipo: 'exito', texto: '¡Validación guardada en el historial con éxito!' });
     } catch (error) {
       setCargando(false);
-      setMensaje({ tipo: 'error', texto: error.message || 'Error al guardar' });
+      
+      const msjError = error.response?.data?.detail || error.message || 'Error al guardar';
+      setMensaje({ tipo: 'error', texto: msjError });
     }
   };
 
