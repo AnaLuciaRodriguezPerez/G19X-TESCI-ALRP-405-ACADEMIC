@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 import { Lock, Eye, EyeOff, CheckCircle, ArrowRight, Check, X } from 'lucide-react';
+import api from '../api';
 
 
 // Crear nueva contraseña
@@ -66,7 +67,7 @@ function RestablecerContrasena() {
     try {
 
       setCargando(true);
-      const respuesta = await axios.post('http://127.0.0.1:8000/restablecer-contrasena', {
+      const respuesta = await api.post('/restablecer-contrasena', {
         token,
         nueva_contrasena: nueva,
       });
