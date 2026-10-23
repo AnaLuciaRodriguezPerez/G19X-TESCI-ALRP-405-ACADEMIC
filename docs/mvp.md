@@ -53,7 +53,7 @@ A partir de la especificación del PRD, los siguientes requisitos funcionales se
 
 ## 4. Requisitos Excluidos o Pendientes (Fuera del Alcance Actual del MVP)
 
-- **RF-019 (Historial Global) y RF-020 (Privacidad del Documento Original):** Garantizar la restricción estricta en el Historial Global para que el Administrador no acceda al documento original y solo pueda visualizar metadatos.
+Actualmente no existen requisitos funcionales pendientes dentro del alcance definido (aun que aun pueden presentar algun error).
 
 ---
 
