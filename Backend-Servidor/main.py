@@ -166,18 +166,24 @@ def validar_contrasena(password: str):
     return errores
 
 
+
+
+class LoginRequest(BaseModel):
+    email: str
+    contrasena: str
+
 # ENDPOINT: Iniciar Sesión
 
 
 @app.post("/login")
-def login(email: str, contrasena: str, db: Session = Depends(get_db)):
+def login(body: LoginRequest, db: Session = Depends(get_db)):
     usuario = (
         db.query(models.Usuario)
-        .filter(models.Usuario.email == email)
+        .filter(models.Usuario.email == body.email)
         .first()
     )
 
-    if not usuario or not verify_password(contrasena, usuario.contrasena):
+    if not usuario or not verify_password(body.contrasena, usuario.contrasena):
         raise HTTPException(status_code=400, detail="Correo o contraseña incorrectos")
     
     if not usuario.activo:
