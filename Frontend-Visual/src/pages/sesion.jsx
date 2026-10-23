@@ -24,9 +24,7 @@ function Login() {
     try {
       setCargando(true);
 
-      const respuesta = await api.post('/login', null, { 
-        params: { email, contrasena },
-      });
+      const respuesta = await api.post('/login', { email, contrasena });
 
       const datosUsuario = respuesta.data.usuario;
       localStorage.setItem('token', respuesta.data.access_token); 
