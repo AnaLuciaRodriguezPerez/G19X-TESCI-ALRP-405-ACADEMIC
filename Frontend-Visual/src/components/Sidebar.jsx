@@ -15,6 +15,7 @@ function Sidebar() {
 
   const confirmarCerrarSesion = () => {
     localStorage.removeItem('usuario');
+     localStorage.removeItem('token');
     setMostrarConfirmacion(false);
     navigate('/');
   };
