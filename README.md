@@ -20,13 +20,17 @@ DocuVerify es un sistema web para la validación documental basada en reglas jur
 
 ## Configuración
 
-Copia `.env.example` a `.env` y llena los valores (los reales están en
-«Accesos de prueba», en Mis documentos).
+
+En la carpeta `Backend-Servidor/`, crea un archivo `.env` basado en `.env.example` con tus credenciales (los valores de prueba están en «Accesos de prueba», en Mis documentos).
+
+En la carpeta `Frontend-Visual/`, crea un archivo `.env` con la variable VITE_API_URL basado en `.env.example` (*Nota: Vite no lee el `.env` de la raíz del proyecto*).
+
 
 ## Cómo instalarlo y ejecutarlo
 
 ```
 cd Backend-Servidor
+python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn main:app --reload
