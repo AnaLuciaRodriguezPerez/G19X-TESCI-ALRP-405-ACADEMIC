@@ -48,4 +48,4 @@ usuario: usuariodepruebasistema@gmail.com
 
 ## Lo que todavía no funciona
 
-- RF-019 y RF-020: El historial global de auditoría para administradores aún no oculta completamente el documento original, mostrando solo los metadatos.
+Por el momento todos los requisitos funcionales del MVP (aunque aun esta la posibilidad que presenten algun error).
