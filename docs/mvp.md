@@ -46,16 +46,14 @@ A partir de la especificación del PRD, los siguientes requisitos funcionales se
 ### Administración Dinámica
 - **RF-015 (Gestión de Tipos de Documentos):** Administración de tipos de documentos jurídicos.
 - **RF-016 (Motor de Reglas Dinámico):** Interfaz para administradores que permite agregar, editar y eliminar reglas jurídicas asociadas a los tipos de documentos.
+- **RF-017 (Panel de Estadísticas - Dashboard):** Implementado con gráficas y estadísticas de uso de la plataforma (análisis por fecha, riesgos y hallazgos).
+- **RF-018 (Administración de Usuarios):** Interfaz para el Administrador que permite listar, modificar roles, suspender (deshabilitar) y eliminar usuarios del sistema.
 
 ---
 
 ## 4. Requisitos Excluidos o Pendientes (Fuera del Alcance Actual del MVP)
 
-Conforme a lo documentado en el proyecto, los siguientes módulos se reservan para fases posteriores de desarrollo:
-
-- **RF-017 (Panel de Estadísticas):** El dashboard visual con gráficas completas de uso para el administrador se encuentra pendiente.
-- **RF-018 (Administración Completa de Usuarios):** La gestión avanzada (suspender usuarios, restablecer contraseñas desde el panel) está pendiente de integración final.
-- **RF-019 y RF-020 (Historial Global de Auditoría con Ocultamiento):** El panel de auditoría global con bloqueo estricto del documento original se implementará en la siguiente versión.
+- **RF-019 (Historial Global) y RF-020 (Privacidad del Documento Original):** Garantizar la restricción estricta en el Historial Global para que el Administrador no acceda al documento original y solo pueda visualizar metadatos.
 
 ---
 
