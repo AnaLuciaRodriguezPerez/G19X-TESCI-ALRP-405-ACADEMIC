@@ -48,6 +48,4 @@ usuario: usuariodepruebasistema@gmail.com
 
 ## Lo que todavía no funciona
 
-- RF-017: El panel de estadísticas del administrador aún no muestra las gráficas y estadísticas completas de uso.
 - RF-019 y RF-020: El historial global de auditoría para administradores aún no oculta completamente el documento original, mostrando solo los metadatos.
-- RF-018: La administración completa de usuarios (suspender, restablecer contraseñas) aún no está terminada.
