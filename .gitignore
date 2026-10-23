@@ -1,17 +1,25 @@
-# Python (Backend)
+# Entornos virtuales y dependencias (se ignora en cualquier carpeta)
 venv/
+.venv/
+.venv
+env/
+node_modules/
+dist/
 __pycache__/
 *.pyc
-Backend-Servidor/venv/
-Backend-Servidor/__pycache__/
+
+# Cargas de usuarios 
 Backend-Servidor/uploads/
 
-# Node / React (Frontend)
-node_modules/
-Frontend-Visual/node_modules/
-Frontend-Visual/dist/
-
-# Archivos del sistema y secretos
+# Archivos de configuración y secretos
 .env
+.env.local
+
+# Sistema y logs
 .DS_Store
 *.log
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
