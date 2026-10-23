@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS tokens_verificacion (
 INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasena, email_verificado, rol)
 VALUES ('Elias', 'Pérez', 'Gómez', 'usuariodepruebasistema@gmail.com', '$2b$12$wHIZrKn6n6G7FFmckWOWkOcS3vn0LkptLL2XEAOkEIadb.NH8dx2a', TRUE, 'usuario');
 
--- Insertar usuario administrador (Contraseña: Sistema-1)
+-- Insertar usuario administrador
 INSERT INTO usuarios (nombre, apellido_paterno, apellido_materno, email, contrasena, email_verificado, rol)
 VALUES ('Administrador', 'Sistema', 'Sistema', 'docuverify.sistema@gmail.com', '$2b$12$U3D79M2IXdmrVT2jO7mMneuPSM6Z32OM6Jg5ZeHKMiTp2Ig7DdzVK', TRUE, 'admin');
 
