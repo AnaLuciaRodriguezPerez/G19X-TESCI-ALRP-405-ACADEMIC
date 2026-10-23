@@ -14,8 +14,6 @@ import google.generativeai as genai
 
 from seguridad import crear_token_acceso, get_current_user, get_current_admin
 
-import documentos
-
 
 # IMPORTS PARA CORREOS Y RECUPERACIÓN
 
@@ -45,8 +43,6 @@ from sqlalchemy.orm import Session
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="DocuVerify API")
-
-app.include_router(documentos.router)
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("uploads/documentos", exist_ok=True)
