@@ -81,60 +81,69 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 # ENDPOINT: Registrar Usuario
 
+class RegistroRequest(BaseModel):
+    nombre: str
+    apellido_paterno: str
+    apellido_materno: str = ""
+    email: str
+    contrasena: str
+
 
 @app.post("/registro")
 def registrar_usuario(
-    nombre: str,
-    apellido_paterno: str,
-    apellido_materno: str,
-    email: str,
-    contrasena: str,
+    body: RegistroRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     usuario_existente = (
-        db.query(models.Usuario).filter(models.Usuario.email == email).first()
+        db.query(models.Usuario).filter(models.Usuario.email == body.email).first()
     )
     if usuario_existente:
         raise HTTPException(
             status_code=400, detail="El correo ya está registrado"
         )
-    errores_contrasena = validar_contrasena(contrasena)
+
+    errores_contrasena = validar_contrasena(body.contrasena)
     if errores_contrasena:
         raise HTTPException(
             status_code=400,
             detail="La contraseña no cumple los requisitos de seguridad: "
                    + ", ".join(errores_contrasena) + ".",
         )
-    contrasena_encriptada = hash_password(contrasena)
+
+    contrasena_encriptada = hash_password(body.contrasena)
     nuevo_usuario = models.Usuario(
-        nombre=nombre,
-        apellido_paterno=apellido_paterno,
-        apellido_materno=apellido_materno,
-        email=email,
+        nombre=body.nombre,
+        apellido_paterno=body.apellido_paterno,
+        apellido_materno=body.apellido_materno,
+        email=body.email,
         contrasena=contrasena_encriptada,
         email_verificado=False,
     )
     db.add(nuevo_usuario)
     db.commit()
     db.refresh(nuevo_usuario)
+
     token = secrets.token_urlsafe(32)
     nuevo_token = models.TokenVerificacion(
         usuario_id=nuevo_usuario.id,
         token_hash=hashlib.sha256(token.encode()).hexdigest(),
-        expira_en=datetime.now(timezone.utc) + timedelta(hours=24),  # 24 horas para verificar
+        expira_en=datetime.now(timezone.utc) + timedelta(hours=24),
     )
     db.add(nuevo_token)
     db.commit()
+
     enlace = f"{FRONTEND_URL}/verificar-correo?token={token}"
     background_tasks.add_task(
         enviar_correo_verificacion,
-        email, nombre, enlace
+        body.email, body.nombre, enlace
     )
+
     return {
         "mensaje": "Usuario registrado. Revisa tu correo electrónico para verificar tu cuenta.",
         "id": nuevo_usuario.id,
     }
+
 
 def validar_contrasena(password: str):
     """
@@ -164,11 +173,12 @@ def validar_contrasena(password: str):
 
 
 
+
+# ENDPOINT: Iniciar Sesión
+
 class LoginRequest(BaseModel):
     email: str
     contrasena: str
-
-# ENDPOINT: Iniciar Sesión
 
 
 @app.post("/login")
