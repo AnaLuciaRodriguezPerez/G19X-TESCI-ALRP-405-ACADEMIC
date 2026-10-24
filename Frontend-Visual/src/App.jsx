@@ -26,7 +26,6 @@ function RutaProtegida({ children }) {
 // Función para proteger rutas exclusivas del admin
 function RutaAdmin({ children }) {
   const usuario = JSON.parse(localStorage.getItem('usuario') || '{}');
-  // Si no hay usuario, lo manda a Login. Si hay pero NO es admin, lo manda a Inicio.
   if (!usuario.email) return <Navigate to="/" replace />;
   if (usuario.rol !== 'admin') return <Navigate to="/inicio" replace />;
   
@@ -88,6 +87,11 @@ function App() {
           } />
 
         </Route>
+
+
+         <Route path="*" element={<Navigate to="/" replace />} />
+
+
       </Routes>
     </BrowserRouter>
   );
