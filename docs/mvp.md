@@ -53,7 +53,9 @@ A partir de la especificación del PRD, los siguientes requisitos funcionales se
 
 ## 4. Requisitos Excluidos o Pendientes (Fuera del Alcance Actual del MVP)
 
-Actualmente no existen requisitos funcionales pendientes dentro del alcance definido (aun que aun pueden presentar algun error).
+Queda como pendiente para una versión futura la siguiente funcionalidad adicional:
+
+- **Chat** El endpoint ya está implementado y protegido con sesión en el backend, pero actualmente ninguna pantalla lo consume. Queda pendiente integrar una pantalla para el chat. Esto no afecta el flujo principal del MVP 
 
 ---
 
