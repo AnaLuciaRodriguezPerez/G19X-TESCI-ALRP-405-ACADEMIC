@@ -77,14 +77,12 @@ function Registro() {
     try {
       setCargando(true);
 
-      await api.post('/registro', null, {
-        params: {
-          nombre,
-          apellido_paterno: apellidoPaterno,
-          apellido_materno: apellidoMaterno || '', // Opcional
-          email,
-          contrasena,
-        },
+      await api.post('/registro', {
+        nombre,
+        apellido_paterno: apellidoPaterno,
+        apellido_materno: apellidoMaterno || '',
+        email,
+        contrasena,
       });
 
       setMostrarModalExito(true);
