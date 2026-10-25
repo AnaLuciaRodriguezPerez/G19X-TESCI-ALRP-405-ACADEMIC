@@ -48,6 +48,8 @@ A partir de la especificación del PRD, los siguientes requisitos funcionales se
 - **RF-016 (Motor de Reglas Dinámico):** Interfaz para administradores que permite agregar, editar y eliminar reglas jurídicas asociadas a los tipos de documentos.
 - **RF-017 (Panel de Estadísticas - Dashboard):** Implementado con gráficas y estadísticas de uso de la plataforma (análisis por fecha, riesgos y hallazgos).
 - **RF-018 (Administración de Usuarios):** Interfaz para el Administrador que permite listar, modificar roles, suspender (deshabilitar) y eliminar usuarios del sistema.
+- **RF-019 (Historial Global de Análisis):** El administrador puede consultar un historial global de todos los análisis realizados en la plataforma.
+- **RF-020 (Protección de privacidad en historial global):** Devuelve únicamente metadatos (nombre de archivo, correo del usuario, fecha, estado y nivel de riesgo). No expone el contenido completo del documento ni el detalle del informe de IA, protegiendo la privacidad de los usuarios.
 
 ---
 
