@@ -1216,3 +1216,41 @@ def eliminar_regla(
     db.delete(regla)
     db.commit()
     return {"mensaje": "Regla eliminada exitosamente"}
+
+
+# 13. Reenviar correo de verificación
+
+@app.post("/api/admin/usuarios/{usuario_target_id}/reenviar-verificacion")
+def admin_reenviar_verificacion(
+    usuario_target_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    admin_actual: models.Usuario = Depends(get_current_admin)
+):
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_target_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    if usuario.email_verificado:
+        raise HTTPException(status_code=400, detail="Este usuario ya verificó su correo electrónico.")
+
+    db.query(models.TokenVerificacion).filter(
+        models.TokenVerificacion.usuario_id == usuario.id,
+        models.TokenVerificacion.usado == False
+    ).update({"usado": True})
+
+    token = secrets.token_urlsafe(32)
+    nuevo_token = models.TokenVerificacion(
+        usuario_id=usuario.id,
+        token_hash=_hash_token(token),
+        expira_en=datetime.now(timezone.utc) + timedelta(hours=HORAS_EXPIRACION_VERIFICACION),
+    )
+    db.add(nuevo_token)
+    db.commit()
+
+    enlace = f"{FRONTEND_URL}/verificar-correo?token={token}"
+    background_tasks.add_task(
+        enviar_correo_verificacion, usuario.email, usuario.nombre, enlace
+    )
+
+    return {"mensaje": f"Correo de verificación reenviado exitosamente a {usuario.email}"}
