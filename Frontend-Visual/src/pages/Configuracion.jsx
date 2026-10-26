@@ -11,6 +11,9 @@ import {
   ChevronDown,
   ChevronUp,
   Lock,
+  Eye,
+  EyeOff,
+  X,
 } from 'lucide-react';
 import api from '../api';
 import { useTema, TEMAS } from '../context/TemaContext';
@@ -45,6 +48,34 @@ function Configuracion() {
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
 
+
+  // Visibilidad de contraseñas
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+
+   // requesitos para la contraseña
+  const requisitos = [
+    { texto: 'Mínimo 8 caracteres', cumple: passwordEd.length >= 8 },
+    { texto: 'Una letra mayúscula (A-Z)', cumple: /[A-Z]/.test(passwordEd) },
+    { texto: 'Una letra minúscula (a-z)', cumple: /[a-z]/.test(passwordEd) },
+    { texto: 'Un número (0-9)', cumple: /[0-9]/.test(passwordEd) },
+    { texto: 'Un carácter especial (!@#$%...)', cumple: /[^A-Za-z0-9]/.test(passwordEd) },
+  ];
+
+  const contrasenaValida = requisitos.every((req) => req.cumple);
+  const requisitosCumplidos = requisitos.filter((req) => req.cumple).length;
+
+  const fortaleza = () => {
+    if (passwordEd.length === 0) return { texto: '', color: '', ancho: '0%' };
+    if (requisitosCumplidos <= 2) return { texto: 'Débil', color: 'bg-red-500', ancho: '33%' };
+    if (requisitosCumplidos <= 4) return { texto: 'Media', color: 'bg-yellow-500', ancho: '66%' };
+    return { texto: 'Fuerte', color: 'bg-green-500', ancho: '100%' };
+  };
+
+  const nivelFortaleza = fortaleza();
+
+
   const inputGray =
     'w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg outline-none bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed transition-all';
   const inputEdit =
@@ -71,6 +102,10 @@ function Configuracion() {
     setError('');
     setMensaje('');
     setMostrarConfigurar(true);
+
+    
+    setShowPass(false);
+    setShowConfirm(false);
   };
 
   const seleccionarFoto = (e) => {
@@ -84,17 +119,25 @@ function Configuracion() {
   // Solo contraseña 
   const hayCambioSensible = passwordEd && passwordEd.length > 0;
 
+
   const pedirConfirmacion = () => {
     if (!nombreEd || !apellidoPEd) {
       setError('Nombre y apellido paterno son obligatorios.');
       return;
     }
-    if (mostrarAvanzado) {
-      if (passwordEd && passwordEd !== confirmPasswordEd) {
+
+    if (mostrarAvanzado && passwordEd) {
+      if (!contrasenaValida) {
+        setError('La nueva contraseña no cumple los requisitos de seguridad. Revisa la lista debajo del campo.');
+        return;
+      }
+      if (passwordEd !== confirmPasswordEd) {
         setError('Las contraseñas nuevas no coinciden.');
         return;
       }
     }
+
+    setError('');
     setMostrarConfirmacion(true);
   };
 
@@ -501,33 +544,120 @@ function Configuracion() {
             {mostrarAvanzado && (
               <div className="flex flex-col gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  ⚠️ Asegúrate de recordar tu nueva contraseña
+                  Asegúrate de recordar tu nueva contraseña
                 </p>
 
+                {/* nueva contraseña */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Nueva Contraseña
                   </label>
-                  <input
-                    type="password"
-                    value={passwordEd}
-                    onChange={(e) => setPasswordEd(e.target.value)}
-                    placeholder="••••••••"
-                    className={inputEdit}
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Lock size={18} />
+                    </div>
+                    <input
+                      type={showPass ? 'text' : 'password'}
+                      value={passwordEd}
+                      onChange={(e) => setPasswordEd(e.target.value)}
+                      placeholder="Crea una contraseña segura"
+                      className={`${inputEdit} pl-10 pr-11`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600"
+                    >
+                      {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  {/* barra de seguridad */}
+                  {passwordEd.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                          Seguridad de la contraseña
+                        </span>
+                        <span
+                          className={`text-xs font-black ${nivelFortaleza.texto === 'Fuerte'
+                              ? 'text-green-600'
+                              : nivelFortaleza.texto === 'Media'
+                                ? 'text-yellow-600'
+                                : 'text-red-500'
+                            }`}
+                        >
+                          {nivelFortaleza.texto}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${nivelFortaleza.color} transition-all duration-300 rounded-full`}
+                          style={{ width: nivelFortaleza.ancho }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* la lista de requisitos para la contraseña */}
+                  <div className="mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3">
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">
+                      Tu contraseña debe contener:
+                    </p>
+                    <ul className="space-y-1">
+                      {requisitos.map((req, index) => (
+                        <li
+                          key={index}
+                          className={`flex items-center gap-2 text-xs font-semibold transition-colors ${req.cumple ? 'text-green-600' : 'text-slate-400 dark:text-slate-500'
+                            }`}
+                        >
+                          {req.cumple ? (
+                            <Check size={14} className="shrink-0" />
+                          ) : (
+                            <X size={14} className="shrink-0" />
+                          )}
+                          {req.texto}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
+                {/* confirmar contraseña */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Confirmar Contraseña
                   </label>
-                  <input
-                    type="password"
-                    value={confirmPasswordEd}
-                    onChange={(e) => setConfirmPasswordEd(e.target.value)}
-                    placeholder="••••••••"
-                    className={inputEdit}
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Lock size={18} />
+                    </div>
+                    <input
+                      type={showConfirm ? 'text' : 'password'}
+                      value={confirmPasswordEd}
+                      onChange={(e) => setConfirmPasswordEd(e.target.value)}
+                      placeholder="Repite tu contraseña"
+                      className={`${inputEdit} pl-10 pr-11`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600"
+                    >
+                      {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+
+                  {confirmPasswordEd.length > 0 && passwordEd !== confirmPasswordEd && (
+                    <p className="mt-1.5 text-xs font-semibold text-red-500 flex items-center gap-1.5">
+                      <X size={14} /> Las contraseñas no coinciden
+                    </p>
+                  )}
+                  {confirmPasswordEd.length > 0 && passwordEd === confirmPasswordEd && (
+                    <p className="mt-1.5 text-xs font-semibold text-green-600 flex items-center gap-1.5">
+                      <Check size={14} /> Las contraseñas coinciden
+                    </p>
+                  )}
                 </div>
               </div>
             )}
