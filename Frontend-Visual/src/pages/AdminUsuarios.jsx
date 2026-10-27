@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api'; 
-import { Shield, ShieldAlert, Ban, CheckCircle, Trash2, Mail, Activity, Search } from 'lucide-react';
+import { Shield, ShieldAlert, Ban, CheckCircle, Trash2, Mail, Activity, Search, Loader2 } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
 
@@ -8,6 +8,7 @@ function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
+  const [enviandoCorreoId, setEnviandoCorreoId] = useState(null);
   const { modoOscuro } = useTema();
 
   const miUsuario = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -61,11 +62,16 @@ function AdminUsuarios() {
     } catch (err) { alert(err.response?.data?.detail || 'Error al eliminar'); }
   };
 
-  const reenviarCorreo = async (email) => {
+  const reenviarCorreo = async (id, email) => {
     try {
-      await api.post('/reenviar-verificacion', { email });
-      alert(`Correo de verificación enviado a ${email}`);
-    } catch (err) { alert('No se pudo enviar el correo.'); }
+      setEnviandoCorreoId(id);
+      const res = await api.post(`/api/admin/usuarios/${id}/reenviar-verificacion`);
+      alert(res.data?.mensaje || `Correo de verificación reenviado a ${email}`);
+    } catch (err) {
+      alert(err.response?.data?.detail || 'No se pudo enviar el correo de verificación.');
+    } finally {
+      setEnviandoCorreoId(null);
+    }
   };
 
   const usuariosFiltrados = usuarios.filter(u => 
@@ -104,6 +110,8 @@ function AdminUsuarios() {
               <tbody className={`divide-y ${modoOscuro ? 'divide-slate-700' : 'divide-slate-200'}`}>
                 {usuariosFiltrados.map((u) => {
                   const esYoMismo = u.id === miUsuario.id;
+                  const estaEnviando = enviandoCorreoId === u.id;
+
                   return (
                     <tr key={u.id} className={`hover:${modoOscuro ? 'bg-slate-700/30' : 'bg-slate-50'} transition-colors`}>
                       <td className="p-4">
@@ -127,8 +135,17 @@ function AdminUsuarios() {
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2">
                           {!u.email_verificado && (
-                            <button onClick={() => reenviarCorreo(u.email)} title="Reenviar Verificación" className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60 rounded-lg transition-colors">
-                              <Mail size={18} />
+                            <button 
+                              disabled={estaEnviando}
+                              onClick={() => reenviarCorreo(u.id, u.email)} 
+                              title="Reenviar Verificación" 
+                              className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                              {estaEnviando ? (
+                                <Loader2 size={18} className="animate-spin" />
+                              ) : (
+                                <Mail size={18} />
+                              )}
                             </button>
                           )}
                           <button disabled={esYoMismo} onClick={() => cambiarRol(u.id, u.rol)} title={u.rol === 'admin' ? "Quitar Admin" : "Hacer Admin"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : 'bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60'}`}>
