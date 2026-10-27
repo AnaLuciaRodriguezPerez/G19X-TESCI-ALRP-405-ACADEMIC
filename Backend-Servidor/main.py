@@ -268,16 +268,28 @@ async def subir_foto_perfil(
 
 @app.post("/perfil/password")
 def cambiar_contrasena(
+    contrasena_actual: str = Form(...),
     contrasena: str = Form(...),
     db: Session = Depends(get_db),
     usuario_actual: models.Usuario = Depends(get_current_user)
 ):
+
+    # saber si la contraseña actual es correcta
+    
+    if not verify_password(contrasena_actual, usuario_actual.contrasena):
+        raise HTTPException(
+            status_code=400, 
+            detail="La contraseña actual no es correcta."
+        )
+
+    
     errores = validar_contrasena(contrasena)
     if errores:
         raise HTTPException(
             status_code=400,
             detail="La contraseña no cumple los requisitos: " + ", ".join(errores)
         )
+    
     usuario_actual.contrasena = hash_password(contrasena)
     db.commit()
     return {"mensaje": "Contraseña actualizada correctamente"}
