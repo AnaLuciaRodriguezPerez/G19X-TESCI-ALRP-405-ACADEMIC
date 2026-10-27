@@ -25,10 +25,10 @@ import time
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 
-from dotenv import load_dotenv      # Para leer el archivo .env
-from fastapi import BackgroundTasks # Para enviar correos sin hacer esperar al usuario
+from dotenv import load_dotenv      
+from fastapi import BackgroundTasks 
 
-load_dotenv()  # Carga las variables del archivo .env
+load_dotenv() 
 
 
 
@@ -45,7 +45,6 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(title="DocuVerify API")
 
 os.makedirs("uploads", exist_ok=True)
-os.makedirs("uploads/documentos", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
@@ -348,11 +347,6 @@ async def analizar_documento(
 
     if not contenido.startswith(b"%PDF"):
         raise HTTPException(status_code=400, detail="El archivo está corrupto o no es un PDF válido")
-
-    nombre_unico = f"{uuid.uuid4()}.pdf"
-    ruta_guardado = os.path.join("uploads", "documentos", nombre_unico)
-    with open(ruta_guardado, "wb") as f:
-        f.write(contenido)
 
     texto_pdf = ""
     try:
