@@ -39,6 +39,9 @@ function Configuracion() {
   const [nombreEd, setNombreEd] = useState('');
   const [apellidoPEd, setApellidoPEd] = useState('');
   const [apellidoMEd, setApellidoMEd] = useState('');
+
+  const [passwordActualEd, setPasswordActualEd] = useState('');
+
   const [passwordEd, setPasswordEd] = useState('');
   const [confirmPasswordEd, setConfirmPasswordEd] = useState('');
   const [fotoEd, setFotoEd] = useState('');
@@ -52,6 +55,8 @@ function Configuracion() {
   // Visibilidad de contraseñas
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  const [showActualPass, setShowActualPass] = useState(false);
 
 
    // requesitos para la contraseña
@@ -96,6 +101,9 @@ function Configuracion() {
     setApellidoMEd(apellidoMaterno);
     setFotoEd(foto);
     setFotoArchivo(null);
+
+     setPasswordActualEd('');
+
     setPasswordEd('');
     setConfirmPasswordEd('');
     setMostrarAvanzado(false);
@@ -127,14 +135,22 @@ function Configuracion() {
     }
 
     if (mostrarAvanzado && passwordEd) {
+
+      if (!passwordActualEd) {
+        setError('Debes ingresar tu contraseña actual para realizar el cambio.');
+        return;
+      }
+
       if (!contrasenaValida) {
         setError('La nueva contraseña no cumple los requisitos de seguridad. Revisa la lista debajo del campo.');
         return;
       }
+
       if (passwordEd !== confirmPasswordEd) {
         setError('Las contraseñas nuevas no coinciden.');
         return;
       }
+      
     }
 
     setError('');
@@ -166,7 +182,10 @@ function Configuracion() {
       });
 
       if (passwordEd) {
-        await api.post('/perfil/password', new URLSearchParams({ contrasena: passwordEd }), { 
+        await api.post('/perfil/password', new URLSearchParams({ 
+          contrasena_actual: passwordActualEd,
+          contrasena: passwordEd 
+        }), { 
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' } 
         });
       }
@@ -190,6 +209,9 @@ function Configuracion() {
 
       setMensaje('¡Cambios guardados correctamente!');
       setMostrarConfigurar(false);
+
+      setPasswordActualEd('');
+
       setPasswordEd('');
       setConfirmPasswordEd('');
       setFotoArchivo(null);
@@ -544,8 +566,34 @@ function Configuracion() {
             {mostrarAvanzado && (
               <div className="flex flex-col gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
-                  Asegúrate de recordar tu nueva contraseña
+                  Ingresa tu contraseña actual y la nueva contraseña
                 </p>
+
+                {/* contraseña actual */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Contraseña Actual
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Lock size={18} />
+                    </div>
+                    <input
+                      type={showActualPass ? 'text' : 'password'}
+                      value={passwordActualEd}
+                      onChange={(e) => setPasswordActualEd(e.target.value)}
+                      placeholder="Ingresa tu contraseña actual"
+                      className={`${inputEdit} pl-10 pr-11`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowActualPass(!showActualPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600"
+                    >
+                      {showActualPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
 
                 {/* nueva contraseña */}
                 <div>
