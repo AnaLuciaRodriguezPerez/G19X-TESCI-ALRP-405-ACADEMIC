@@ -62,4 +62,4 @@ Las reglas jurídicas evaluadas, el diseño de la base de datos, la estructura g
 
 ## Lo que todavía no funciona
 
-Por el momento todos los requisitos funcionales del MVP (aunque aun esta la posibilidad que presenten algun error).
+Dentro del codigo ya está implementado un funcionamiento para un chat pero actualmente dentro del proyecto no hay ningguna pantalla que lo utilice.
