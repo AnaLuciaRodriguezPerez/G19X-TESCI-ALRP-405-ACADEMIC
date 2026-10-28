@@ -1,4 +1,4 @@
-# Instalación en carpeta limpia — fecha · commit dbd58b5
+# Instalación en carpeta limpia — fecha · commit cb8bb49
 
 | Paso | Qué hice | Resultado |
 |---|---|---|
