@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { Mail, ArrowLeft, Send, CheckCircle } from 'lucide-react';
 import api from '../api';
 
