@@ -50,6 +50,16 @@ Se abre en http://localhost:5173
 usuario (admin): docuverify.sistema@gmail.com
 usuario: usuariodepruebasistema@gmail.com
 
+## Uso de IA
+
+Se utilizo asistente de IA principalmente como consulta y apoyo para:
+
+- Aprender cómo implementar la API de Google Gemini en el backend.
+- Definir cómo estructurar el código para poder leer y enviar el contenido de los documentos PDF para su análisis con AI.
+- Ayuda técnica para lograr implementar la configuración dinámica de colores dentro del sistema.
+
+Las reglas jurídicas evaluadas, el diseño de la base de datos, la estructura general del proyecto y la revisión de cada cambio implementado los decidí y realicé yo.
+
 ## Lo que todavía no funciona
 
 Por el momento todos los requisitos funcionales del MVP (aunque aun esta la posibilidad que presenten algun error).
