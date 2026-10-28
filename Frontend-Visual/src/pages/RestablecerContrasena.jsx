@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 
 import { Lock, Eye, EyeOff, CheckCircle, ArrowRight, Check, X } from 'lucide-react';
 import api from '../api';
