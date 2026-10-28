@@ -414,7 +414,7 @@ async def analizar_documento(
     """
 
     try:
-        modelo = genai.GenerativeModel("models/gemini-3.6-flash") # Asegurate de usar "gemini-1.5-flash" si el 3.6 no existe
+        modelo = genai.GenerativeModel("models/gemini-3.6-flash")
         respuesta_ia = modelo.generate_content(prompt)
         texto_respuesta = respuesta_ia.text.strip()
 
