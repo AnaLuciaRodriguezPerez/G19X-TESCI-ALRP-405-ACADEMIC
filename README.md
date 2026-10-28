@@ -23,7 +23,7 @@ DocuVerify es un sistema web para la validación documental basada en reglas jur
 
 En la carpeta `Backend-Servidor/`, crea un archivo `.env` basado en `.env.example` que esta en la raiz (los valores de prueba están en «Accesos de prueba», en Mis documentos).
 
-En la carpeta `Frontend-Visual/`, crea un archivo `.env` con la variable VITE_API_URL basado en `.env.example` que esta en la raiz (tambien se encuentra en el .env.example en la carpeta de Frontend-Visual).
+En la carpeta `Frontend-Visual/`, crea un archivo `.env` copiando directamente`.env.example` que esta la carpeta de Frontend-Visual,
 
 
 ## Cómo instalarlo y ejecutarlo
