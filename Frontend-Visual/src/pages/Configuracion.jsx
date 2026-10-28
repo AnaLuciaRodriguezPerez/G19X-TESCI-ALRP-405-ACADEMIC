@@ -161,33 +161,37 @@ function Configuracion() {
     setMostrarConfirmacion(false);
     setGuardando(true);
     try {
-      let fotoUrl = foto;
-
-      if (fotoArchivo) {
-        const formData = new FormData();
-        formData.append('archivo', fotoArchivo);
-        const fotoResp = await api.post('/perfil/foto', formData, { 
-            headers: { 'Content-Type': 'multipart/form-data' } 
-        });
-        fotoUrl = fotoResp.data.foto + '?t=' + Date.now();
-      }
-
-      await api.put('/perfil', null, {
-          params: {
-            nombre: nombreEd,
-            apellido_paterno: apellidoPEd,
-            apellido_materno: apellidoMEd || '',
-          },
-      });
-
-      if (passwordEd) {
-        await api.post('/perfil/password', new URLSearchParams({ 
+    if (passwordEd) {
+      await api.post(
+        '/perfil/password',
+        new URLSearchParams({
           contrasena_actual: passwordActualEd,
-          contrasena: passwordEd 
-        }), { 
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' } 
-        });
-      }
+          contrasena: passwordEd,
+        }),
+        {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        }
+      );
+    }
+
+    let fotoUrl = foto;
+
+    if (fotoArchivo) {
+      const formData = new FormData();
+      formData.append('archivo', fotoArchivo);
+      const fotoResp = await api.post('/perfil/foto', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      fotoUrl = fotoResp.data.foto + '?t=' + Date.now();
+    }
+
+    await api.put('/perfil', null, {
+      params: {
+        nombre: nombreEd,
+        apellido_paterno: apellidoPEd,
+        apellido_materno: apellidoMEd || '',
+      },
+    });
 
       setNombre(nombreEd);
       setApellidoPaterno(apellidoPEd);
