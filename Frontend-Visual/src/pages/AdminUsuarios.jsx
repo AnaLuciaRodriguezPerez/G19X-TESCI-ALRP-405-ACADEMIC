@@ -13,6 +13,7 @@ function AdminUsuarios() {
 
   const [modalBloqueo, setModalBloqueo] = useState({ abierto: false, id: null, estadoActual: false });
   const [modalRol, setModalRol] = useState({ abierto: false, id: null, rolActual: '' });
+  const [modalEliminar, setModalEliminar] = useState({ abierto: false, id: null });
 
 
   const { modoOscuro } = useTema();
@@ -77,13 +78,22 @@ function AdminUsuarios() {
     }
   };
 
-  const eliminarUsuario = async (id) => {
-    if (!window.confirm('ADVERTENCIA: Esta acción es irreversible. ¿Eliminar usuario y todos sus análisis?')) return;
+  // Eliminar usuarios
 
+  const solicitarEliminarUsuario = (id) => {
+    setModalEliminar({ abierto: true, id });
+  };
+
+  const confirmarEliminarUsuario = async () => {
+    const { id } = modalEliminar;
     try {
       await api.delete(`/api/admin/usuarios/${id}`);
       cargarUsuarios();
-    } catch (err) { alert(err.response?.data?.detail || 'Error al eliminar'); }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al eliminar');
+    } finally {
+      setModalEliminar({ abierto: false, id: null });
+    }
   };
 
   const reenviarCorreo = async (id, email) => {
@@ -178,7 +188,7 @@ function AdminUsuarios() {
                           <button disabled={esYoMismo} onClick={() => solicitarAlternarBloqueo(u.id, u.activo)} title={u.activo ? "Bloquear" : "Desbloquear"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : u.activo ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60' : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60'}`}>
                             {u.activo ? <Ban size={18} /> : <CheckCircle size={18} />}
                           </button>
-                          <button disabled={esYoMismo} onClick={() => eliminarUsuario(u.id)} title="Eliminar Usuario" className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60'}`}>
+                          <button disabled={esYoMismo} onClick={() => solicitarEliminarUsuario(u.id)} title="Eliminar Usuario" className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60'}`}>
                             <Trash2 size={18} />
                           </button>
                         </div>
@@ -288,6 +298,48 @@ function AdminUsuarios() {
                   className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors"
                 >
                   Sí, cambiar rol
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {modalEliminar.abierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setModalEliminar({ abierto: false, id: null })}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
+            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-5">
+                <Trash2 size={30} className="text-red-600" />
+              </div>
+
+              <h3 className="text-2xl font-black mb-2">¿Eliminar usuario?</h3>
+
+              <p className="mb-8 leading-relaxed opacity-70">
+                <strong className="text-red-500 block mb-1">ADVERTENCIA:</strong>
+                Esta acción es irreversible. Se eliminará el usuario y todos sus análisis asociados.
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setModalEliminar({ abierto: false, id: null })}
+                  className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarEliminarUsuario}
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
+                >
+                  Sí, eliminar
                 </button>
               </div>
             </div>
