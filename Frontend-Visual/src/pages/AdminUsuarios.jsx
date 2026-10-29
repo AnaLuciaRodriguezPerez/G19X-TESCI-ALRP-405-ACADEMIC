@@ -9,6 +9,11 @@ function AdminUsuarios() {
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [enviandoCorreoId, setEnviandoCorreoId] = useState(null);
+
+
+  const [modalBloqueo, setModalBloqueo] = useState({ abierto: false, id: null, estadoActual: false });
+  
+  
   const { modoOscuro } = useTema();
 
   const miUsuario = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -41,16 +46,24 @@ function AdminUsuarios() {
     } catch (err) { alert(err.response?.data?.detail || 'Error al cambiar rol'); }
   };
 
-  const alternarBloqueo = async (id, estadoActual) => {
-    const accion = estadoActual ? 'BLOQUEAR' : 'DESBLOQUEAR';
-    if (!window.confirm(`¿Seguro que deseas ${accion} a este usuario?`)) return;
+  //  bloquear o desbloquear usuarios
 
+  const solicitarAlternarBloqueo = (id, estadoActual) => {
+    setModalBloqueo({ abierto: true, id, estadoActual });
+  };
+
+  const confirmarAlternarBloqueo = async () => {
+    const { id, estadoActual } = modalBloqueo;
     try {
-      await api.put(`/api/admin/usuarios/${id}/estado`, null, { 
+      await api.put(`/api/admin/usuarios/${id}/estado`, null, {
         params: { activo: !estadoActual }
       });
       cargarUsuarios();
-    } catch (err) { alert(err.response?.data?.detail || 'Error al cambiar estado'); }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al cambiar estado');
+    } finally {
+      setModalBloqueo({ abierto: false, id: null, estadoActual: false });
+    }
   };
 
   const eliminarUsuario = async (id) => {
@@ -151,7 +164,7 @@ function AdminUsuarios() {
                           <button disabled={esYoMismo} onClick={() => cambiarRol(u.id, u.rol)} title={u.rol === 'admin' ? "Quitar Admin" : "Hacer Admin"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : 'bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60'}`}>
                             {u.rol === 'admin' ? <ShieldAlert size={18} /> : <Shield size={18} />}
                           </button>
-                          <button disabled={esYoMismo} onClick={() => alternarBloqueo(u.id, u.activo)} title={u.activo ? "Bloquear" : "Desbloquear"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : u.activo ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60' : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60'}`}>
+                          <button disabled={esYoMismo} onClick={() => solicitarAlternarBloqueo(u.id, u.activo)} title={u.activo ? "Bloquear" : "Desbloquear"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : u.activo ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60' : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60'}`}>
                             {u.activo ? <Ban size={18} /> : <CheckCircle size={18} />}
                           </button>
                           <button disabled={esYoMismo} onClick={() => eliminarUsuario(u.id)} title="Eliminar Usuario" className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : 'bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60'}`}>
@@ -170,6 +183,57 @@ function AdminUsuarios() {
           </div>
         </div>
       </main>
+
+
+      {modalBloqueo.abierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setModalBloqueo({ abierto: false, id: null, estadoActual: false })}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
+            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${modalBloqueo.estadoActual ? 'bg-orange-100' : 'bg-green-100'
+                }`}>
+                {modalBloqueo.estadoActual ? (
+                  <Ban size={30} className="text-orange-600" />
+                ) : (
+                  <CheckCircle size={30} className="text-green-600" />
+                )}
+              </div>
+
+              <h3 className="text-2xl font-black mb-2">
+                {modalBloqueo.estadoActual ? '¿Bloquear usuario?' : '¿Desbloquear usuario?'}
+              </h3>
+
+              <p className="mb-8 leading-relaxed opacity-70">
+                {modalBloqueo.estadoActual
+                  ? '¿Seguro que deseas BLOQUEAR a este usuario? No podrá acceder al sistema.'
+                  : '¿Seguro que deseas DESBLOQUEAR a este usuario? Recuperará el acceso.'}
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setModalBloqueo({ abierto: false, id: null, estadoActual: false })}
+                  className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarAlternarBloqueo}
+                  className={`flex-1 py-3 text-white font-bold rounded-xl transition-colors ${modalBloqueo.estadoActual ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                >
+                  {modalBloqueo.estadoActual ? 'Sí, bloquear' : 'Sí, desbloquear'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
