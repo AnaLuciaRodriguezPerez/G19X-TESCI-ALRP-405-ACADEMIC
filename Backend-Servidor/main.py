@@ -123,14 +123,7 @@ def registrar_usuario(
     db.commit()
     db.refresh(nuevo_usuario)
 
-    token = secrets.token_urlsafe(32)
-    nuevo_token = models.TokenVerificacion(
-        usuario_id=nuevo_usuario.id,
-        token_hash=hashlib.sha256(token.encode()).hexdigest(),
-        expira_en=datetime.now(timezone.utc) + timedelta(hours=24),
-    )
-    db.add(nuevo_token)
-    db.commit()
+    token = _crear_token_verificacion(db, nuevo_usuario)
 
     enlace = f"{FRONTEND_URL}/verificar-correo?token={token}"
     background_tasks.add_task(
@@ -426,7 +419,7 @@ async def analizar_documento(
         resultado_json = json.loads(texto_respuesta.strip())
 
     except Exception as error:
-        print(f"🛑 Error de conexión con IA: {error}")
+        print(f"Error de conexión con IA: {error}")
         raise HTTPException(status_code=500, detail=f"Error al analizar el documento con IA: {str(error)}")
 
     if not resultado_json.get("es_documento_correcto", True):
@@ -461,7 +454,6 @@ def guardar_analisis(
     db: Session = Depends(get_db),
     usuario_actual: models.Usuario = Depends(get_current_user)
 ):
-    # Ignoramos el usuario_id que mande el frontend y usamos el del token
     nuevo_analisis = models.AnalisisResultado(
         usuario_id=usuario_actual.id,
         tipo_documento_id=body.tipo_documento_id or 1,
