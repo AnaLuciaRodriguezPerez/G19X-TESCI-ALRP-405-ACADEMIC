@@ -772,19 +772,7 @@ def reenviar_verificacion(
     if not usuario or usuario.email_verificado:
         return respuesta
 
-    db.query(models.TokenVerificacion).filter(
-        models.TokenVerificacion.usuario_id == usuario.id,
-        models.TokenVerificacion.usado == False,  # noqa: E712
-    ).update({"usado": True})
-
-    token = secrets.token_urlsafe(32)
-    nuevo_token = models.TokenVerificacion(
-        usuario_id=usuario.id,
-        token_hash=_hash_token(token),
-        expira_en=datetime.now(timezone.utc) + timedelta(hours=HORAS_EXPIRACION_VERIFICACION),
-    )
-    db.add(nuevo_token)
-    db.commit()
+    token = _crear_token_verificacion(db, usuario)
 
     enlace = f"{FRONTEND_URL}/verificar-correo?token={token}"
     background_tasks.add_task(
