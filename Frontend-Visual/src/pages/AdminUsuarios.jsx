@@ -14,6 +14,7 @@ function AdminUsuarios() {
   const [modalBloqueo, setModalBloqueo] = useState({ abierto: false, id: null, estadoActual: false });
   const [modalRol, setModalRol] = useState({ abierto: false, id: null, rolActual: '' });
   const [modalEliminar, setModalEliminar] = useState({ abierto: false, id: null });
+  const [modalNotificacion, setModalNotificacion] = useState({ abierto: false, titulo: '', mensaje: '', esError: false });
 
 
   const { modoOscuro } = useTema();
@@ -96,13 +97,26 @@ function AdminUsuarios() {
     }
   };
 
+
+  // reenviar correo
+
   const reenviarCorreo = async (id, email) => {
     try {
       setEnviandoCorreoId(id);
       const res = await api.post(`/api/admin/usuarios/${id}/reenviar-verificacion`);
-      alert(res.data?.mensaje || `Correo de verificación reenviado a ${email}`);
+      setModalNotificacion({
+        abierto: true,
+        titulo: '¡Correo Enviado!',
+        mensaje: res.data?.mensaje || `Se ha reenviado el correo de verificación a ${email}`,
+        esError: false
+      });
     } catch (err) {
-      alert(err.response?.data?.detail || 'No se pudo enviar el correo de verificación.');
+      setModalNotificacion({
+        abierto: true,
+        titulo: 'Error al enviar',
+        mensaje: err.response?.data?.detail || 'No se pudo enviar el correo de verificación.',
+        esError: true
+      });
     } finally {
       setEnviandoCorreoId(null);
     }
@@ -342,6 +356,45 @@ function AdminUsuarios() {
                   Sí, eliminar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {modalNotificacion.abierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setModalNotificacion({ abierto: false, titulo: '', mensaje: '', esError: false })}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
+            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${modalNotificacion.esError ? 'bg-red-100' : 'bg-green-100'
+                }`}>
+                {modalNotificacion.esError ? (
+                  <ShieldAlert size={30} className="text-red-600" />
+                ) : (
+                  <CheckCircle size={30} className="text-green-600" />
+                )}
+              </div>
+
+              <h3 className="text-2xl font-black mb-2">{modalNotificacion.titulo}</h3>
+
+              <p className="mb-8 leading-relaxed opacity-70">
+                {modalNotificacion.mensaje}
+              </p>
+
+              <button
+                onClick={() => setModalNotificacion({ abierto: false, titulo: '', mensaje: '', esError: false })}
+                className={`w-full py-3 text-white font-bold rounded-xl transition-colors ${modalNotificacion.esError ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+              >
+                Aceptar
+              </button>
             </div>
           </div>
         </div>
