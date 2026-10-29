@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api'; 
+import api from '../api';
 import { Shield, ShieldAlert, Ban, CheckCircle, Trash2, Mail, Activity, Search, Loader2 } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
@@ -12,8 +12,9 @@ function AdminUsuarios() {
 
 
   const [modalBloqueo, setModalBloqueo] = useState({ abierto: false, id: null, estadoActual: false });
-  
-  
+  const [modalRol, setModalRol] = useState({ abierto: false, id: null, rolActual: '' });
+
+
   const { modoOscuro } = useTema();
 
   const miUsuario = JSON.parse(localStorage.getItem('usuario') || '{}');
@@ -21,7 +22,7 @@ function AdminUsuarios() {
   const cargarUsuarios = async () => {
     setCargando(true);
     try {
-      const res = await api.get('/api/admin/usuarios'); 
+      const res = await api.get('/api/admin/usuarios');
       setUsuarios(res.data);
     } catch (err) {
       alert('Error al cargar usuarios');
@@ -34,16 +35,26 @@ function AdminUsuarios() {
     cargarUsuarios();
   }, []);
 
-  const cambiarRol = async (id, rolActual) => {
+
+  // cambiar rol del usuario
+
+  const solicitarCambiarRol = (id, rolActual) => {
+    setModalRol({ abierto: true, id, rolActual });
+  };
+
+  const confirmarCambiarRol = async () => {
+    const { id, rolActual } = modalRol;
     const nuevoRol = rolActual === 'admin' ? 'usuario' : 'admin';
-    if (!window.confirm(`¿Seguro que deseas hacer a este usuario ${nuevoRol.toUpperCase()}?`)) return;
-    
     try {
-      await api.put(`/api/admin/usuarios/${id}/rol`, null, { 
+      await api.put(`/api/admin/usuarios/${id}/rol`, null, {
         params: { nuevo_rol: nuevoRol }
       });
       cargarUsuarios();
-    } catch (err) { alert(err.response?.data?.detail || 'Error al cambiar rol'); }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al cambiar rol');
+    } finally {
+      setModalRol({ abierto: false, id: null, rolActual: '' });
+    }
   };
 
   //  bloquear o desbloquear usuarios
@@ -87,8 +98,8 @@ function AdminUsuarios() {
     }
   };
 
-  const usuariosFiltrados = usuarios.filter(u => 
-    u.nombre.toLowerCase().includes(busqueda.toLowerCase()) || 
+  const usuariosFiltrados = usuarios.filter(u =>
+    u.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
     u.email.toLowerCase().includes(busqueda.toLowerCase())
   );
 
@@ -138,9 +149,9 @@ function AdminUsuarios() {
                       </td>
                       <td className="p-4 flex flex-col gap-1 items-start">
                         {!u.activo ? (
-                          <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-semibold rounded-md flex items-center gap-1"><Ban size={12}/> BLOQUEADO</span>
+                          <span className="px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-semibold rounded-md flex items-center gap-1"><Ban size={12} /> BLOQUEADO</span>
                         ) : u.email_verificado ? (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 text-xs font-semibold rounded-md flex items-center gap-1"><CheckCircle size={12}/> ACTIVO</span>
+                          <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 text-xs font-semibold rounded-md flex items-center gap-1"><CheckCircle size={12} /> ACTIVO</span>
                         ) : (
                           <span className="px-2 py-1 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 text-xs font-semibold rounded-md">PENDIENTE VERIFICAR</span>
                         )}
@@ -148,10 +159,10 @@ function AdminUsuarios() {
                       <td className="p-4">
                         <div className="flex items-center justify-center gap-2">
                           {!u.email_verificado && (
-                            <button 
+                            <button
                               disabled={estaEnviando}
-                              onClick={() => reenviarCorreo(u.id, u.email)} 
-                              title="Reenviar Verificación" 
+                              onClick={() => reenviarCorreo(u.id, u.email)}
+                              title="Reenviar Verificación"
                               className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               {estaEnviando ? (
@@ -161,7 +172,7 @@ function AdminUsuarios() {
                               )}
                             </button>
                           )}
-                          <button disabled={esYoMismo} onClick={() => cambiarRol(u.id, u.rol)} title={u.rol === 'admin' ? "Quitar Admin" : "Hacer Admin"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : 'bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60'}`}>
+                          <button disabled={esYoMismo} onClick={() => solicitarCambiarRol(u.id, u.rol)} title={u.rol === 'admin' ? "Quitar Admin" : "Hacer Admin"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : 'bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/60'}`}>
                             {u.rol === 'admin' ? <ShieldAlert size={18} /> : <Shield size={18} />}
                           </button>
                           <button disabled={esYoMismo} onClick={() => solicitarAlternarBloqueo(u.id, u.activo)} title={u.activo ? "Bloquear" : "Desbloquear"} className={`p-2 rounded-lg transition-colors ${esYoMismo ? 'opacity-30 cursor-not-allowed' : u.activo ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60' : 'bg-green-100 text-green-600 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60'}`}>
@@ -234,6 +245,57 @@ function AdminUsuarios() {
           </div>
         </div>
       )}
+
+
+      {modalRol.abierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setModalRol({ abierto: false, id: null, rolActual: '' })}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
+            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-5">
+                {modalRol.rolActual === 'admin' ? (
+                  <ShieldAlert size={30} className="text-purple-600" />
+                ) : (
+                  <Shield size={30} className="text-purple-600" />
+                )}
+              </div>
+
+              <h3 className="text-2xl font-black mb-2">
+                {modalRol.rolActual === 'admin' ? '¿Quitar rol de Admin?' : '¿Hacer Administrador?'}
+              </h3>
+
+              <p className="mb-8 leading-relaxed opacity-70">
+                {modalRol.rolActual === 'admin'
+                  ? '¿Seguro que deseas cambiar el rol de este usuario a USUARIO?'
+                  : '¿Seguro que deseas otorgar permisos de ADMINISTRADOR a este usuario?'}
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={() => setModalRol({ abierto: false, id: null, rolActual: '' })}
+                  className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarCambiarRol}
+                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors"
+                >
+                  Sí, cambiar rol
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }
