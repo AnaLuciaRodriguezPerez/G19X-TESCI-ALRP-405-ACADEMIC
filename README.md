@@ -52,7 +52,7 @@ usuario: usuariodepruebasistema@gmail.com
 
 ## Uso de IA
 
-Se utilizo asistente de IA principalmente como consulta y apoyo para:
+Se utilizó grok como asistente de IA principalmente como consulta y apoyo para:
 
 - Aprender cómo implementar la API de Google Gemini en el backend.
 - Definir cómo estructurar el código para poder leer y enviar el contenido de los documentos PDF para su análisis con AI.
