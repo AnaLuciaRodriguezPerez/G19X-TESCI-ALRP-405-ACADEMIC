@@ -593,9 +593,27 @@ def _excede_limite(email: str) -> bool:
 
 # FUNCIONES DE CORREO
 
-def _hash_token(token: str) -> str:
-    """Convierte el token en hash SHA-256 para guardarlo en la BD."""
+def _hash_token(token: str):
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _crear_token_verificacion(db: Session, usuario: models.Usuario):
+    db.query(models.TokenVerificacion).filter(
+        models.TokenVerificacion.usuario_id == usuario.id,
+        models.TokenVerificacion.usado == False,  
+    ).update({"usado": True})
+
+    token = secrets.token_urlsafe(32)
+    db.add(
+        models.TokenVerificacion(
+            usuario_id=usuario.id,
+            token_hash=_hash_token(token),
+            expira_en=datetime.now(timezone.utc)
+            + timedelta(hours=HORAS_EXPIRACION_VERIFICACION),
+        )
+    )
+    db.commit()
+    return token
 
 
 def enviar_correo(destinatario: str, asunto: str, texto_plano: str, html: str):
