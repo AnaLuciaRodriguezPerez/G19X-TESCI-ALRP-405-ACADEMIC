@@ -4,6 +4,8 @@ import { Scale, Plus, Edit, Trash2, Check, Activity, FilePlus, AlertCircle, Chec
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
 
+import ModalConfirmacion from '../components/ModalConfirmacion';
+
 function AdminReglas() {
   const [tiposDocumento, setTiposDocumento] = useState([]);
   const [reglas, setReglas] = useState([]);
@@ -208,35 +210,36 @@ function AdminReglas() {
           </div>
         </div>
 
-        {modalConfirmacionGuardar.mostrar && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setModalConfirmacionGuardar({mostrar: false, accion: null})} />
-            <div className={`relative rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-              <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center rounded-full mb-4"><Save size={32} /></div>
-              <h3 className="text-xl font-black mb-2">¿Guardar cambios?</h3>
-              <p className={`mb-6 ${modoOscuro ? 'text-slate-300' : 'text-slate-600'}`}>{modalConfirmacionGuardar.accion === 'regla' ? '¿Estás seguro de que deseas guardar esta regla jurídica en el sistema?' : '¿Estás seguro de que deseas registrar este nuevo tipo de documento?'}</p>
-              <div className="flex gap-3">
-                <button onClick={() => setModalConfirmacionGuardar({mostrar: false, accion: null})} className={`flex-1 py-3 font-bold rounded-xl transition-colors ${modoOscuro ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}>Revisar</button>
-                <button onClick={modalConfirmacionGuardar.accion === 'regla' ? ejecutarGuardarRegla : ejecutarGuardarTipo} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md">Sí, guardar</button>
-              </div>
-            </div>
-          </div>
-        )}
+        
+        <ModalConfirmacion
+          abierto={modalConfirmacionGuardar.mostrar}
+          titulo="¿Guardar cambios?"
+          mensaje={modalConfirmacionGuardar.accion === 'regla'
+            ? '¿Estás seguro de que deseas guardar esta regla jurídica en el sistema?'
+            : '¿Estás seguro de que deseas registrar este nuevo tipo de documento?'}
+          icono={<Save size={30} className="text-blue-600" />}
+          fondoIcono="bg-blue-100"
+          colorBoton="bg-blue-600 hover:bg-blue-700"
+          textoAceptar="Sí, guardar"
+          onAceptar={modalConfirmacionGuardar.accion === 'regla' ? ejecutarGuardarRegla : ejecutarGuardarTipo}
+          onCancelar={() => setModalConfirmacionGuardar({mostrar: false, accion: null})}
+          modoOscuro={modoOscuro}
+        />
 
-        {modalConfirmacion.mostrar && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setModalConfirmacion({mostrar: false, idRegla: null})} />
-            <div className={`relative rounded-2xl shadow-2xl p-8 w-full max-w-sm text-center ${modoOscuro ? 'bg-slate-800' : 'bg-white'}`}>
-              <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center rounded-full mb-4"><AlertTriangle size={32} /></div>
-              <h3 className="text-xl font-black mb-2">¿Eliminar regla?</h3>
-              <p className={`mb-6 ${modoOscuro ? 'text-slate-300' : 'text-slate-600'}`}>Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta regla jurídica?</p>
-              <div className="flex gap-3">
-                <button onClick={() => setModalConfirmacion({mostrar: false, idRegla: null})} className={`flex-1 py-3 font-bold rounded-xl transition-colors ${modoOscuro ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}>Cancelar</button>
-                <button onClick={confirmarEliminacion} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors shadow-md">Sí, eliminar</button>
-              </div>
-            </div>
-          </div>
-        )}
+
+        <ModalConfirmacion
+          abierto={modalConfirmacion.mostrar}
+          titulo="¿Eliminar regla?"
+          mensaje="Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta regla jurídica?"
+          icono={<AlertTriangle size={30} className="text-red-600" />}
+          fondoIcono="bg-red-100"
+          colorBoton="bg-red-600 hover:bg-red-700"
+          textoAceptar="Sí, eliminar"
+          onAceptar={confirmarEliminacion}
+          onCancelar={() => setModalConfirmacion({mostrar: false, idRegla: null})}
+          modoOscuro={modoOscuro}
+        />
+        
 
         {mostrarFormularioTipo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
