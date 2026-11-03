@@ -9,12 +9,16 @@ function Login() {
   const [email, setEmail] = useState('');
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState('');
+
+  const [aviso, setAviso] = useState('');
+
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setAviso('');
 
     if (!email || !contrasena) {
       setError('Por favor, completa todos los campos.');
@@ -111,15 +115,32 @@ function Login() {
               </div>
             )}
 
+            {aviso && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm font-bold text-center">
+                {aviso}
+              </div>
+            )}
+
             {error.includes('verificar') && (
-              <button type="button" onClick={async () => {
-                  try {
-                    const r = await api.post('/reenviar-verificacion', { email }); 
-                    alert(r.data.mensaje);
-                  } catch (err) { alert('No se pudo reenviar el correo.'); }
-                }} className="text-sm text-blue-600 font-semibold hover:underline">
-                Reenviar correo de verificación
-              </button>
+              <div className="flex justify-center mt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      setError(''); 
+                      setAviso('Enviando correo...'); 
+                      const r = await api.post('/reenviar-verificacion', { email });
+                      setAviso(r.data.mensaje || 'Correo de verificación reenviado.');
+                    } catch (err) {
+                      setAviso('');
+                      setError('No se pudo reenviar el correo.');
+                    }
+                  }}
+                  className="text-sm text-blue-600 font-semibold hover:underline"
+                >
+                  Reenviar correo de verificación
+                </button>
+              </div>
             )}
 
             <div className="flex justify-end">
