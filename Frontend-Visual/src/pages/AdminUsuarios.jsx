@@ -4,6 +4,8 @@ import { Shield, ShieldAlert, Ban, CheckCircle, Trash2, Mail, Activity, Search, 
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
 
+import ModalConfirmacion from '../components/ModalConfirmacion';
+
 function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -27,7 +29,7 @@ function AdminUsuarios() {
       const res = await api.get('/api/admin/usuarios');
       setUsuarios(res.data);
     } catch (err) {
-      alert('Error al cargar usuarios');
+      setModalNotificacion({ abierto: true, titulo: 'Error', mensaje: 'Error al cargar usuarios', esError: true });
     } finally {
       setCargando(false);
     }
@@ -53,7 +55,7 @@ function AdminUsuarios() {
       });
       cargarUsuarios();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error al cambiar rol');
+      setModalNotificacion({ abierto: true, titulo: 'Error', mensaje: err.response?.data?.detail || 'Error al cambiar rol', esError: true });
     } finally {
       setModalRol({ abierto: false, id: null, rolActual: '' });
     }
@@ -73,7 +75,7 @@ function AdminUsuarios() {
       });
       cargarUsuarios();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error al cambiar estado');
+      setModalNotificacion({ abierto: true, titulo: 'Error', mensaje: err.response?.data?.detail || 'Error al cambiar estado', esError: true });
     } finally {
       setModalBloqueo({ abierto: false, id: null, estadoActual: false });
     }
@@ -91,7 +93,7 @@ function AdminUsuarios() {
       await api.delete(`/api/admin/usuarios/${id}`);
       cargarUsuarios();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Error al eliminar');
+      setModalNotificacion({ abierto: true, titulo: 'Error', mensaje: err.response?.data?.detail || 'Error al eliminar', esError: true });
     } finally {
       setModalEliminar({ abierto: false, id: null });
     }
@@ -220,146 +222,50 @@ function AdminUsuarios() {
       </main>
 
 
-      {modalBloqueo.abierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setModalBloqueo({ abierto: false, id: null, estadoActual: false })}
-          />
-          <div
-            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
-            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-5 ${modalBloqueo.estadoActual ? 'bg-orange-100' : 'bg-green-100'
-                }`}>
-                {modalBloqueo.estadoActual ? (
-                  <Ban size={30} className="text-orange-600" />
-                ) : (
-                  <CheckCircle size={30} className="text-green-600" />
-                )}
-              </div>
-
-              <h3 className="text-2xl font-black mb-2">
-                {modalBloqueo.estadoActual ? '¿Bloquear usuario?' : '¿Desbloquear usuario?'}
-              </h3>
-
-              <p className="mb-8 leading-relaxed opacity-70">
-                {modalBloqueo.estadoActual
-                  ? '¿Seguro que deseas BLOQUEAR a este usuario? No podrá acceder al sistema.'
-                  : '¿Seguro que deseas DESBLOQUEAR a este usuario? Recuperará el acceso.'}
-              </p>
-
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setModalBloqueo({ abierto: false, id: null, estadoActual: false })}
-                  className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmarAlternarBloqueo}
-                  className={`flex-1 py-3 text-white font-bold rounded-xl transition-colors ${modalBloqueo.estadoActual ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                >
-                  {modalBloqueo.estadoActual ? 'Sí, bloquear' : 'Sí, desbloquear'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirmacion
+        abierto={modalBloqueo.abierto}
+        titulo={modalBloqueo.estadoActual ? '¿Bloquear usuario?' : '¿Desbloquear usuario?'}
+        mensaje={modalBloqueo.estadoActual
+          ? '¿Seguro que deseas BLOQUEAR a este usuario? No podrá acceder al sistema.'
+          : '¿Seguro que deseas DESBLOQUEAR a este usuario? Recuperará el acceso.'}
+        icono={modalBloqueo.estadoActual ? <Ban size={30} className="text-orange-600" /> : <CheckCircle size={30} className="text-green-600" />}
+        fondoIcono={modalBloqueo.estadoActual ? 'bg-orange-100' : 'bg-green-100'}
+        colorBoton={modalBloqueo.estadoActual ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}
+        textoAceptar={modalBloqueo.estadoActual ? 'Sí, bloquear' : 'Sí, desbloquear'}
+        onAceptar={confirmarAlternarBloqueo}
+        onCancelar={() => setModalBloqueo({ abierto: false, id: null, estadoActual: false })}
+        modoOscuro={modoOscuro}
+      />
 
 
-      {modalRol.abierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setModalRol({ abierto: false, id: null, rolActual: '' })}
-          />
-          <div
-            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
-            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-5">
-                {modalRol.rolActual === 'admin' ? (
-                  <ShieldAlert size={30} className="text-purple-600" />
-                ) : (
-                  <Shield size={30} className="text-purple-600" />
-                )}
-              </div>
-
-              <h3 className="text-2xl font-black mb-2">
-                {modalRol.rolActual === 'admin' ? '¿Quitar rol de Admin?' : '¿Hacer Administrador?'}
-              </h3>
-
-              <p className="mb-8 leading-relaxed opacity-70">
-                {modalRol.rolActual === 'admin'
-                  ? '¿Seguro que deseas cambiar el rol de este usuario a USUARIO?'
-                  : '¿Seguro que deseas otorgar permisos de ADMINISTRADOR a este usuario?'}
-              </p>
-
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setModalRol({ abierto: false, id: null, rolActual: '' })}
-                  className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmarCambiarRol}
-                  className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors"
-                >
-                  Sí, cambiar rol
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirmacion
+        abierto={modalRol.abierto}
+        titulo={modalRol.rolActual === 'admin' ? '¿Quitar rol de Admin?' : '¿Hacer Administrador?'}
+        mensaje={modalRol.rolActual === 'admin'
+          ? '¿Seguro que deseas cambiar el rol de este usuario a USUARIO?'
+          : '¿Seguro que deseas otorgar permisos de ADMINISTRADOR a este usuario?'}
+        icono={modalRol.rolActual === 'admin' ? <ShieldAlert size={30} className="text-purple-600" /> : <Shield size={30} className="text-purple-600" />}
+        fondoIcono="bg-purple-100"
+        colorBoton="bg-purple-600 hover:bg-purple-700"
+        textoAceptar="Sí, cambiar rol"
+        onAceptar={confirmarCambiarRol}
+        onCancelar={() => setModalRol({ abierto: false, id: null, rolActual: '' })}
+        modoOscuro={modoOscuro}
+      />
 
 
-      {modalEliminar.abierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setModalEliminar({ abierto: false, id: null })}
-          />
-          <div
-            className="relative rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4"
-            style={{ backgroundColor: 'var(--color-card-bg)', color: modoOscuro ? '#fff' : '#0f172a' }}
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-5">
-                <Trash2 size={30} className="text-red-600" />
-              </div>
-
-              <h3 className="text-2xl font-black mb-2">¿Eliminar usuario?</h3>
-
-              <p className="mb-8 leading-relaxed opacity-70">
-                <strong className="text-red-500 block mb-1">ADVERTENCIA:</strong>
-                Esta acción es irreversible. Se eliminará el usuario y todos sus análisis asociados.
-              </p>
-
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => setModalEliminar({ abierto: false, id: null })}
-                  className="flex-1 py-3 font-bold rounded-xl bg-slate-200 dark:bg-slate-600 hover:opacity-80 transition-opacity"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmarEliminarUsuario}
-                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-colors"
-                >
-                  Sí, eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirmacion
+        abierto={modalEliminar.abierto}
+        titulo="¿Eliminar usuario?"
+        mensaje="Esta acción es irreversible. Se eliminará el usuario y todos sus análisis asociados."
+        icono={<Trash2 size={30} className="text-red-600" />}
+        fondoIcono="bg-red-100"
+        colorBoton="bg-red-600 hover:bg-red-700"
+        textoAceptar="Sí, eliminar"
+        onAceptar={confirmarEliminarUsuario}
+        onCancelar={() => setModalEliminar({ abierto: false, id: null })}
+        modoOscuro={modoOscuro}
+      />
 
 
       {modalNotificacion.abierto && (
