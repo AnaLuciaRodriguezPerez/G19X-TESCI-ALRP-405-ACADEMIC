@@ -399,6 +399,19 @@ async def analizar_documento(
     else:
         reglas_texto_prompt = "- Realizar una auditoría general legal de este documento identificando riesgos."
 
+    verificacion_reglas = []
+    if tipo_doc.reglas:
+        verificacion_reglas = verificar_clausulas_en_texto(texto_pdf, tipo_doc.reglas)
+
+    resumen_verificacion = ""
+    if verificacion_reglas:
+        resumen_verificacion = "VERIFICACIÓN PREVIA POR REGLAS (búsqueda de texto en el PDF):\n"
+        for v in verificacion_reglas:
+            estado_v = "ENCONTRADA en el texto" if v["encontrada_en_texto"] else "NO encontrada en el texto"
+            tipo_r = "OBLIGATORIA" if v["es_obligatoria"] else "recomendada"
+            resumen_verificacion += f"- [{tipo_r}] {v['nombre']}: {estado_v}\n"
+        resumen_verificacion += "\nUsa esta verificación como apoyo, pero valida con criterio jurídico el contenido real.\n"
+
     prompt = f"""
     Eres un abogado corporativo Senior experto en auditoría documental en México.
 
@@ -412,6 +425,9 @@ async def analizar_documento(
 
     REGLAS JURÍDICAS OBLIGATORIAS Y RECOMENDADAS A EVALUAR PARA UN {tipo_doc.nombre.upper()}:
     {reglas_texto_prompt}
+
+    {resumen_verificacion}
+
 
     FORMATO DE RESPUESTA EXCLUSIVO (JSON estricto sin markdown ```json):
 
@@ -469,6 +485,7 @@ async def analizar_documento(
         "mensaje": "Documento analizado con IA exitosamente",
         "archivo": archivo.filename,
         "tipo_documento": tipo_doc.nombre,
+        "verificacion_reglas": verificacion_reglas,
         "resultado": resultado_json,
     }
 
