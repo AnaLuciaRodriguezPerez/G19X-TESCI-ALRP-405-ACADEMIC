@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api'; 
+import api from '../api';
 import { Scale, Plus, Edit, Trash2, Check, Activity, FilePlus, AlertCircle, CheckCircle, X, AlertTriangle, Save } from 'lucide-react';
 import { useTema } from '../context/TemaContext';
 import PageHeader from '../components/PageHeader';
@@ -39,7 +39,7 @@ function AdminReglas() {
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      const resTipos = await api.get('/api/admin/tipos-documento'); 
+      const resTipos = await api.get('/api/admin/tipos-documento');
       setTiposDocumento(resTipos.data);
       if (resTipos.data.length > 0) {
         const idInicial = tipoSeleccionado || resTipos.data[0].id;
@@ -60,7 +60,7 @@ function AdminReglas() {
   const cargarReglas = async (tipoId) => {
     if (!tipoId) return;
     try {
-      const res = await api.get('/api/admin/reglas', { 
+      const res = await api.get('/api/admin/reglas', {
         params: { tipo_documento_id: tipoId }
       });
       setReglas(res.data);
@@ -89,7 +89,7 @@ function AdminReglas() {
     setModalConfirmacionGuardar({ mostrar: false, accion: null });
     try {
       if (editandoRegla) {
-        await api.put(`/api/admin/reglas/${editandoRegla.id}`, null, { 
+        await api.put(`/api/admin/reglas/${editandoRegla.id}`, null, {
           params: {
             nombre_clausula: formDataRegla.nombre_clausula,
             criterio_evaluacion: formDataRegla.criterio_evaluacion,
@@ -98,7 +98,7 @@ function AdminReglas() {
         });
         mostrarMensaje('Regla actualizada correctamente', 'exito');
       } else {
-        await api.post('/api/admin/reglas', null, { 
+        await api.post('/api/admin/reglas', null, {
           params: {
             tipo_documento_id: formDataRegla.tipo_documento_id || tipoSeleccionado,
             nombre_clausula: formDataRegla.nombre_clausula,
@@ -123,7 +123,7 @@ function AdminReglas() {
   const ejecutarGuardarTipo = async () => {
     setModalConfirmacionGuardar({ mostrar: false, accion: null });
     try {
-      const res = await api.post('/api/admin/tipos-documento', null, { 
+      const res = await api.post('/api/admin/tipos-documento', null, {
         params: { nombre: formDataTipo.nombre, descripcion: formDataTipo.descripcion }
       });
       mostrarMensaje('Tipo de documento registrado exitosamente', 'exito');
@@ -151,7 +151,7 @@ function AdminReglas() {
 
   const confirmarEliminacion = async () => {
     try {
-      await api.delete(`/api/admin/reglas/${modalConfirmacion.idRegla}`); 
+      await api.delete(`/api/admin/reglas/${modalConfirmacion.idRegla}`);
       mostrarMensaje('Regla eliminada exitosamente', 'exito');
       cargarReglas(tipoSeleccionado);
     } catch (err) {
@@ -189,7 +189,7 @@ function AdminReglas() {
         <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform translate-y-0 opacity-100 ${notificacion.tipo === 'exito' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
           {notificacion.tipo === 'exito' ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
           <p className="font-semibold">{notificacion.mensaje}</p>
-          <button onClick={() => setNotificacion({...notificacion, mostrar: false})} className="ml-2 hover:bg-white/20 p-1 rounded-full transition-colors"><X size={18} /></button>
+          <button onClick={() => setNotificacion({ ...notificacion, mostrar: false })} className="ml-2 hover:bg-white/20 p-1 rounded-full transition-colors"><X size={18} /></button>
         </div>
       )}
 
@@ -203,43 +203,12 @@ function AdminReglas() {
               {tiposDocumento.map(t => (<option key={t.id} value={t.id}>{t.nombre}</option>))}
             </select>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <button onClick={() => setMostrarFormularioTipo(true)} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-md"><FilePlus size={20} />Nuevo Tipo de Documento</button>
             <button onClick={() => { setMostrarFormularioRegla(true); setEditandoRegla(null); }} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-md"><Plus size={20} />Nueva Regla</button>
           </div>
         </div>
-
-        
-        <ModalConfirmacion
-          abierto={modalConfirmacionGuardar.mostrar}
-          titulo="¿Guardar cambios?"
-          mensaje={modalConfirmacionGuardar.accion === 'regla'
-            ? '¿Estás seguro de que deseas guardar esta regla jurídica en el sistema?'
-            : '¿Estás seguro de que deseas registrar este nuevo tipo de documento?'}
-          icono={<Save size={30} className="text-blue-600" />}
-          fondoIcono="bg-blue-100"
-          colorBoton="bg-blue-600 hover:bg-blue-700"
-          textoAceptar="Sí, guardar"
-          onAceptar={modalConfirmacionGuardar.accion === 'regla' ? ejecutarGuardarRegla : ejecutarGuardarTipo}
-          onCancelar={() => setModalConfirmacionGuardar({mostrar: false, accion: null})}
-          modoOscuro={modoOscuro}
-        />
-
-
-        <ModalConfirmacion
-          abierto={modalConfirmacion.mostrar}
-          titulo="¿Eliminar regla?"
-          mensaje="Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta regla jurídica?"
-          icono={<AlertTriangle size={30} className="text-red-600" />}
-          fondoIcono="bg-red-100"
-          colorBoton="bg-red-600 hover:bg-red-700"
-          textoAceptar="Sí, eliminar"
-          onAceptar={confirmarEliminacion}
-          onCancelar={() => setModalConfirmacion({mostrar: false, idRegla: null})}
-          modoOscuro={modoOscuro}
-        />
-        
 
         {mostrarFormularioTipo && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -249,11 +218,11 @@ function AdminReglas() {
               <form onSubmit={handleSubmitTipo} className="space-y-5">
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>Nombre del Documento *</label>
-                  <input type="text" required value={formDataTipo.nombre} onChange={(e) => setFormDataTipo({...formDataTipo, nombre: e.target.value})} placeholder="Ej: Contrato de Arrendamiento" className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-emerald-500 outline-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
+                  <input type="text" required value={formDataTipo.nombre} onChange={(e) => setFormDataTipo({ ...formDataTipo, nombre: e.target.value })} placeholder="Ej: Contrato de Arrendamiento" className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-emerald-500 outline-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
                 </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>Descripción</label>
-                  <textarea rows="3" value={formDataTipo.descripcion} onChange={(e) => setFormDataTipo({...formDataTipo, descripcion: e.target.value})} placeholder="Breve descripción..." className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-emerald-500 outline-none resize-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
+                  <textarea rows="3" value={formDataTipo.descripcion} onChange={(e) => setFormDataTipo({ ...formDataTipo, descripcion: e.target.value })} placeholder="Breve descripción..." className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-emerald-500 outline-none resize-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setMostrarFormularioTipo(false)} className={`flex-1 py-3 font-bold rounded-xl transition-colors ${modoOscuro ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-200 hover:bg-slate-300'}`}>Cancelar</button>
@@ -273,28 +242,28 @@ function AdminReglas() {
                 {!editandoRegla && (
                   <div>
                     <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>¿A qué tipo de documento pertenece esta regla? *</label>
-                    <select value={formDataRegla.tipo_documento_id} onChange={(e) => setFormDataRegla({...formDataRegla, tipo_documento_id: Number(e.target.value)})} className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none font-semibold ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
+                    <select value={formDataRegla.tipo_documento_id} onChange={(e) => setFormDataRegla({ ...formDataRegla, tipo_documento_id: Number(e.target.value) })} className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none font-semibold ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-300 text-slate-800'}`}>
                       {tiposDocumento.map(t => (<option key={t.id} value={t.id}>{t.nombre}</option>))}
                     </select>
                   </div>
                 )}
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>Nombre de la Cláusula *</label>
-                  <input type="text" required value={formDataRegla.nombre_clausula} onChange={(e) => setFormDataRegla({...formDataRegla, nombre_clausula: e.target.value})} placeholder="Ej: Depósito en Garantía" className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
+                  <input type="text" required value={formDataRegla.nombre_clausula} onChange={(e) => setFormDataRegla({ ...formDataRegla, nombre_clausula: e.target.value })} placeholder="Ej: Depósito en Garantía" className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
                 </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>Criterio de Evaluación *</label>
-                  <textarea required rows="4" value={formDataRegla.criterio_evaluacion} onChange={(e) => setFormDataRegla({...formDataRegla, criterio_evaluacion: e.target.value})} placeholder="Describe qué debe verificar la IA..." className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none resize-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
+                  <textarea required rows="4" value={formDataRegla.criterio_evaluacion} onChange={(e) => setFormDataRegla({ ...formDataRegla, criterio_evaluacion: e.target.value })} placeholder="Describe qué debe verificar la IA..." className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none resize-none ${modoOscuro ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-white border-slate-300'}`} />
                 </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${modoOscuro ? 'text-slate-300' : 'text-slate-700'}`}>¿Es obligatoria?</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="es_obligatoria" checked={formDataRegla.es_obligatoria === true} onChange={() => setFormDataRegla({...formDataRegla, es_obligatoria: true})} className="w-4 h-4 text-blue-600" />
+                      <input type="radio" name="es_obligatoria" checked={formDataRegla.es_obligatoria === true} onChange={() => setFormDataRegla({ ...formDataRegla, es_obligatoria: true })} className="w-4 h-4 text-blue-600" />
                       <span className="font-semibold text-green-600 dark:text-green-400">Sí, obligatoria</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="es_obligatoria" checked={formDataRegla.es_obligatoria === false} onChange={() => setFormDataRegla({...formDataRegla, es_obligatoria: false})} className="w-4 h-4 text-blue-600" />
+                      <input type="radio" name="es_obligatoria" checked={formDataRegla.es_obligatoria === false} onChange={() => setFormDataRegla({ ...formDataRegla, es_obligatoria: false })} className="w-4 h-4 text-blue-600" />
                       <span className="font-semibold text-yellow-600 dark:text-yellow-400">Recomendada</span>
                     </label>
                   </div>
@@ -349,6 +318,38 @@ function AdminReglas() {
           </div>
         </div>
       </main>
+
+
+      <ModalConfirmacion
+        abierto={modalConfirmacionGuardar.mostrar}
+        titulo="¿Guardar cambios?"
+        mensaje={modalConfirmacionGuardar.accion === 'regla'
+          ? '¿Estás seguro de que deseas guardar esta regla jurídica en el sistema?'
+          : '¿Estás seguro de que deseas registrar este nuevo tipo de documento?'}
+        icono={<Save size={30} className="text-blue-600" />}
+        fondoIcono="bg-blue-100"
+        colorBoton="bg-blue-600 hover:bg-blue-700"
+        textoAceptar="Sí, guardar"
+        onAceptar={modalConfirmacionGuardar.accion === 'regla' ? ejecutarGuardarRegla : ejecutarGuardarTipo}
+        onCancelar={() => setModalConfirmacionGuardar({ mostrar: false, accion: null })}
+        modoOscuro={modoOscuro}
+      />
+
+
+      <ModalConfirmacion
+        abierto={modalConfirmacion.mostrar}
+        titulo="¿Eliminar regla?"
+        mensaje="Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta regla jurídica?"
+        icono={<AlertTriangle size={30} className="text-red-600" />}
+        fondoIcono="bg-red-100"
+        colorBoton="bg-red-600 hover:bg-red-700"
+        textoAceptar="Sí, eliminar"
+        onAceptar={confirmarEliminacion}
+        onCancelar={() => setModalConfirmacion({ mostrar: false, idRegla: null })}
+        modoOscuro={modoOscuro}
+      />
+
+
     </div>
   );
 }
