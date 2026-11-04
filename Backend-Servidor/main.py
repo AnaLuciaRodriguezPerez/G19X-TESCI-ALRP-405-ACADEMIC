@@ -323,11 +323,6 @@ def actualizar_perfil(
 
 
 def verificar_clausulas_en_texto(texto_pdf: str, reglas) -> list:
-    """
-    Comprobación propia basada en reglas:
-    busca si el texto del PDF menciona cada cláusula (sobre todo las obligatorias).
-    Esto refuerza el enfoque "basado en reglas" además del análisis con Gemini.
-    """
     texto_lower = (texto_pdf or "").lower()
     resultados = []
 
@@ -339,16 +334,13 @@ def verificar_clausulas_en_texto(texto_pdf: str, reglas) -> list:
         nombre_lower = nombre.lower()
         encontrado = nombre_lower in texto_lower
 
-        # Si el nombre completo no aparece, buscamos palabras clave significativas
         if not encontrado:
-            # Quitamos conectores y signos; nos quedamos con palabras > 3 letras
             bruto = nombre_lower.replace("/", " ").replace("-", " ").replace(",", " ")
             palabras = [p for p in bruto.split() if len(p) > 3 and p not in {
                 "para", "como", "sobre", "entre", "desde", "hasta", "según", "este", "esta", "estos", "estas"
             }]
             if palabras:
                 coincidencias = sum(1 for p in palabras if p in texto_lower)
-                # Se considera encontrada si aparece al menos la mitad de las palabras clave
                 encontrado = coincidencias >= max(1, (len(palabras) + 1) // 2)
 
         resultados.append({
