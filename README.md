@@ -23,7 +23,7 @@ DocuVerify es un sistema web para la validación documental basada en reglas jur
 
 En la carpeta `Backend-Servidor/`, crea un archivo `.env` basado en `.env.example` que esta en la raiz (los valores de prueba están en «Accesos de prueba», en Mis documentos).
 
-En la carpeta `Frontend-Visual/`, crea un archivo `.env` copiando directamente`.env.example` que esta la carpeta de Frontend-Visual,
+En la carpeta `Frontend-Visual/`, crea un archivo `.env` copiando directamente `.env.example` que esta en la carpeta de Frontend-Visual.
 
 
 ## Cómo instalarlo y ejecutarlo
@@ -62,4 +62,4 @@ Las reglas jurídicas evaluadas, el diseño de la base de datos, la estructura g
 
 ## Lo que todavía no funciona
 
-Dentro del codigo ya está implementado un funcionamiento para un chat pero actualmente dentro del proyecto no hay ningguna pantalla que lo utilice.
+Dentro del codigo ya está implementado un funcionamiento para un chat pero actualmente dentro del proyecto no hay ninguna pantalla que lo utilice.
