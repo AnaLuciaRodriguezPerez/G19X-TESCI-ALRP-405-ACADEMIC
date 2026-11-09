@@ -32,7 +32,7 @@ A partir de la especificación del PRD, los siguientes requisitos funcionales se
 - **RF-002 (Extracción de contenido):** Extracción automatizada del texto del PDF cargado.
 - **RF-003 (Selección de conjunto de reglas):** Asociación del documento con las reglas de Acuerdos de Confidencialidad (NDA).
 - **RF-004 (Validación de estructura documental):** Verificación de elementos estructurales del contrato.
-- **RF-005 (Validación de cláusulas obligatorias):** Verificación de presencia de cláusulas clave.
+- **RF-005 (Validación de cláusulas obligatorias):** Verificación de presencia de cláusulas clave. Antes de enviar la información a la IA, el sistema busca cada cláusula en el texto del PDF.
 - **RF-006 (Validación de consistencia):** Identificación de posibles inconsistencias en el texto.
 - **RF-007 (Referencias normativas):** Revisión del marco normativo aplicable.
 - **RF-008 (Validación de formato):** Verificación de criterios de formato requeridos.
