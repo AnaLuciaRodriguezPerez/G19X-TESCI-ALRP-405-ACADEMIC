@@ -6,7 +6,7 @@ import {
 import api from '../api';
 
 function AcuerdoConfidencialidad() {
-  // --- Estados ---
+  
   const [tiposDocumento, setTiposDocumento] = useState([]);
   const [tipoSeleccionado, setTipoSeleccionado] = useState('');
   
@@ -17,6 +17,9 @@ function AcuerdoConfidencialidad() {
   const [progreso, setProgreso] = useState(0);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [resultado, setResultado] = useState(null);
+
+  const [verificacion, setVerificacion] = useState([]);
+  
   const [mostrarInforme, setMostrarInforme] = useState(false);
   const inputRef = useRef(null);
 
@@ -53,6 +56,7 @@ function AcuerdoConfidencialidad() {
   const reiniciarTodo = () => {
     setArchivo(null);
     setResultado(null);
+    setVerificacion([]);
     setMensaje({ tipo: '', texto: '' });
     setProgreso(0);
     setFaseCarga('');
@@ -82,6 +86,9 @@ function AcuerdoConfidencialidad() {
 
     setArchivo(file);
     setResultado(null);
+
+    setVerificacion([]);
+
     setMostrarInforme(false);
     setMensaje({ tipo: '', texto: '' });
     setProgreso(0);
@@ -117,6 +124,9 @@ function AcuerdoConfidencialidad() {
     setProgreso(0);
     setMensaje({ tipo: '', texto: '' });
     setResultado(null);
+
+    setVerificacion([]);
+
     setMostrarInforme(false);
 
     try {
@@ -132,6 +142,9 @@ function AcuerdoConfidencialidad() {
       });
 
       setResultado(respuesta.data.resultado);
+
+      setVerificacion(respuesta.data.verificacion_reglas || []);
+
       setMensaje({ tipo: 'exito', texto: '¡Análisis jurídico completado con éxito!' });
     } catch (error) {
       const msj =
@@ -325,6 +338,37 @@ function AcuerdoConfidencialidad() {
                     ))}
                   </div>
                 </div>
+
+
+                {verificacion.length > 0 && (
+                  <div>
+                    <h4 className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-3">
+                      Verificación por reglas (búsqueda en el texto):
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      {verificacion.map((v, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700"
+                        >
+                          <span className="text-base font-medium text-slate-700 dark:text-slate-200">
+                            {v.nombre} {v.es_obligatoria ? '(obligatoria)' : '(recomendada)'}
+                          </span>
+                          {v.encontrada_en_texto ? (
+                            <span className="flex items-center gap-1.5 text-sm font-bold text-green-600 shrink-0">
+                              <CheckCircle size={18} /> Encontrada en el texto
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 text-sm font-bold text-amber-600 shrink-0">
+                              <AlertTriangle size={18} /> No encontrada
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                   <button onClick={() => setMostrarInforme((v) => !v)} className="flex-1 px-6 py-3.5 text-base text-white font-semibold rounded-lg shadow-md flex items-center justify-center gap-2 hover:opacity-90" style={{ backgroundColor: 'var(--color-primary)' }}>
