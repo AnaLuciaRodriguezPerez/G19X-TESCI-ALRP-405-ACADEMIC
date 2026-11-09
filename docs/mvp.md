@@ -65,5 +65,5 @@ Queda como pendiente para una versión futura la siguiente funcionalidad adicion
 
 1. El usuario debe ser capaz de registrarse.
 2. El usuario debe poder subir un archivo PDF de NDA y recibir una evaluación estructurada por la IA.
-3. El resultado debe guardarse automáticamente en la base de datos de PostgreSQL dentro de su historial personal.
+3. El resultado de la evaluación se guarda en la base de datos de PostgreSQL dentro del historial personal cuando el usuario presiona el botón «Aceptar validación».
 4. El Administrador debe poder crear y editar reglas jurídicas desde el panel dinámico de administración.
