@@ -5,7 +5,7 @@
 
 ## Qué hace
 
-DocuVerify es un sistema web para la validación documental basada en reglas jurídicas. Permite cargar documentos, analizarlos con apoyo de inteligencia artificial mediante Google Gemini y verificar el cumplimiento de cláusulas o criterios definidos para cada tipo de documento. El sistema está dirigido a usuarios que necesitan una revisión documental inicial y a administradores encargados de gestionar el catálogo de tipos de documentos, las reglas jurídicas y los usuarios de la plataforma.
+DocuVerify es un sistema web para la validación documental basada en reglas jurídicas. Permite cargar documentos, analizarlos con apoyo de inteligencia artificial mediante Google Gemini y verificar el cumplimiento de cláusulas o criterios definidos para cada tipo de documento. Antes de consultar a Google Gemini, el sistema realiza una búsqueda determinista de cada cláusula en el texto del documento según las reglas definidas. El sistema está dirigido a usuarios que necesitan una revisión documental inicial y a administradores encargados de gestionar el catálogo de tipos de documentos, las reglas jurídicas y los usuarios de la plataforma.
 
 ## Qué necesitas instalado
 
