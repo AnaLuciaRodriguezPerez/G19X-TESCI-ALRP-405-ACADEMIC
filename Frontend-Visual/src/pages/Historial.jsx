@@ -1,11 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, AlertTriangle, CheckCircle, Info, Eye, Lightbulb, X } from 'lucide-react';
+import { FileText, AlertTriangle, CheckCircle, Info, Eye, Lightbulb, X, Upload, Loader2, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import api from '../api';
 
 function Historial() {
   const [historial, setHistorial] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [informeSeleccionado, setInformeSeleccionado] = useState(null);
+
+
+  const [itemParaVersion, setItemParaVersion] = useState(null);
+  const [archivoV2, setArchivoV2] = useState(null);
+  const [subiendoV2, setSubiendoV2] = useState(false);
+  const [errorV2, setErrorV2] = useState('');
+
+
+
+  const [desplegados, setDesplegados] = useState({});
+
+  const toggleDesplegar = (id) => {
+    setDesplegados(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const gruposDocumentos = React.useMemo(() => {
+    const mapa = {};
+    
+    historial.forEach((item) => {
+      const raizId = item.analisis_padre_id || item.id;
+      if (!mapa[raizId]) {
+        mapa[raizId] = [];
+      }
+      mapa[raizId].push(item);
+    });
+
+    Object.keys(mapa).forEach((raizId) => {
+      mapa[raizId].sort((a, b) => (b.version || 1) - (a.version || 1));
+    });
+
+    return Object.values(mapa).sort((a, b) => new Date(b[0].fecha_analisis) - new Date(a[0].fecha_analisis));
+  }, [historial]);
+
 
   useEffect(() => {
     const cargarHistorial = async () => {
@@ -33,6 +66,48 @@ function Historial() {
     return 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300';
   };
 
+
+  const handleSubirNuevaVersion = async () => {
+    if (!archivoV2 || !itemParaVersion) return;
+
+    setSubiendoV2(true);
+    setErrorV2('');
+
+    try {
+      const formData = new FormData();
+      formData.append('archivo', archivoV2);
+      formData.append('tipo_documento_id', itemParaVersion.tipo_documento_id || 1);
+
+      const analisisResp = await api.post('/api/documentos/analizar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const resultado = analisisResp.data.resultado;
+
+      await api.post('/api/historial/guardar', {
+        usuario_id: itemParaVersion.usuario_id, // el backend usa el del token igual
+        nombre_archivo: archivoV2.name,
+        resultado_ia: resultado,
+        tipo_documento_id: itemParaVersion.tipo_documento_id || 1,
+        analisis_padre_id: itemParaVersion.analisis_padre_id || itemParaVersion.id,
+      });
+
+      const refresco = await api.get('/api/historial');
+      setHistorial(refresco.data);
+
+      setItemParaVersion(null);
+      setArchivoV2(null);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.detail ||
+        'No se pudo analizar la nueva versión. Intenta de nuevo.';
+      setErrorV2(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setSubiendoV2(false);
+    }
+  };
+
+
   return (
     <div
       className="flex-1 flex flex-col overflow-y-auto transition-colors duration-300 relative"
@@ -59,9 +134,12 @@ function Historial() {
             <div className="text-center p-8 text-slate-500">Cargando tu historial...</div>
           ) : (
             <div className="overflow-x-auto">
+
+
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 dark:border-slate-700 text-sm text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <th className="p-4 w-10"></th>
                     <th className="p-4 font-semibold">Fecha de Análisis</th>
                     <th className="p-4 font-semibold">Documento</th>
                     <th className="p-4 font-semibold">Estado Global</th>
@@ -70,40 +148,126 @@ function Historial() {
                   </tr>
                 </thead>
                 <tbody className="text-sm divide-y divide-slate-100 dark:divide-slate-800">
-                  {historial.map((item) => (
-                    <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                      <td className="p-4 text-slate-600 dark:text-slate-300">
-                        {new Date(item.fecha_analisis).toLocaleDateString('es-MX', {
-                          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                        })}
-                      </td>
-                      <td className="p-4 font-medium text-slate-800 dark:text-white flex items-center gap-3">
-                        <FileText className="w-6 h-6 text-red-500 shrink-0" />
-                        {item.nombre_archivo}
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full font-medium text-xs ${getEstadoColor(item.resultado_ia.estado)}`}>
-                          {item.resultado_ia.estado}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-md border font-semibold text-xs ${getRiesgoColor(item.resultado_ia.puntuacion_riesgo)}`}>
-                          Riesgo: {item.resultado_ia.puntuacion_riesgo}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <button
-                          onClick={() => setInformeSeleccionado(item)}
-                          className="font-medium text-sm hover:underline flex items-center justify-center gap-1 mx-auto transition-colors"
-                          style={{ color: 'var(--color-primary)' }}
-                        >
-                          <Eye size={16} /> Ver Informe
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {gruposDocumentos.map((grupo) => {
+                    const ultimaVersion = grupo[0]; // La versión más nueva
+                    const tieneVariasVersiones = grupo.length > 1;
+                    const raizId = ultimaVersion.analisis_padre_id || ultimaVersion.id;
+                    const estaAbierto = !!desplegados[raizId];
+
+                    return (
+                      <React.Fragment key={raizId}>
+                        {/* FILA PRINCIPAL (Muestra la versión más reciente) */}
+                        <tr className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                          <td className="p-4 text-center">
+                            {tieneVariasVersiones && (
+                              <button
+                                onClick={() => toggleDesplegar(raizId)}
+                                className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 transition-colors"
+                                title="Ver historial de versiones"
+                              >
+                                {estaAbierto ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                              </button>
+                            )}
+                          </td>
+                          <td className="p-4 text-slate-600 dark:text-slate-300">
+                            {new Date(ultimaVersion.fecha_analisis).toLocaleDateString('es-MX', {
+                              year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="p-4 font-medium text-slate-800 dark:text-white">
+                            <div className="flex items-center gap-3">
+                              <FileText className="w-6 h-6 text-red-500 shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="flex items-center gap-2">
+                                  {ultimaVersion.nombre_archivo}
+                                  {tieneVariasVersiones && (
+                                    <span className="inline-flex items-center gap-1 text-[11px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-semibold">
+                                      <Layers size={12} /> {grupo.length} vers.
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-[10px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400 mt-0.5">
+                                  Versión {ultimaVersion.version || 1} (Última)
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-3 py-1 rounded-full font-medium text-xs ${getEstadoColor(ultimaVersion.resultado_ia.estado)}`}>
+                              {ultimaVersion.resultado_ia.estado}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-3 py-1 rounded-md border font-semibold text-xs ${getRiesgoColor(ultimaVersion.resultado_ia.puntuacion_riesgo)}`}>
+                              Riesgo: {ultimaVersion.resultado_ia.puntuacion_riesgo}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center whitespace-nowrap">
+                            <div className="flex flex-col items-center gap-1.5">
+                              <button
+                                onClick={() => setInformeSeleccionado(ultimaVersion)}
+                                className="font-medium text-sm hover:underline flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap"
+                                style={{ color: 'var(--color-primary)' }}
+                              >
+                                <Eye size={16} className="shrink-0" /> Ver Informe
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setItemParaVersion(ultimaVersion);
+                                  setArchivoV2(null);
+                                  setErrorV2('');
+                                }}
+                                className="font-medium text-xs hover:underline flex items-center justify-center gap-1 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors whitespace-nowrap"
+                              >
+                                <Upload size={14} className="shrink-0" /> Nueva versión
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {estaAbierto && tieneVariasVersiones && grupo.slice(1).map((subItem) => (
+                          <tr key={subItem.id} className="bg-slate-50/80 dark:bg-slate-800/40 border-l-4 border-blue-500 transition-colors">
+                            <td></td>
+                            <td className="p-3 pl-6 text-xs text-slate-500 dark:text-slate-400">
+                              {new Date(subItem.fecha_analisis).toLocaleDateString('es-MX', {
+                                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="p-3 font-medium text-slate-700 dark:text-slate-300">
+                              <div className="flex items-center gap-2 pl-4">
+                                <span className="text-slate-400 text-xs font-mono">└─</span>
+                                <span className="text-xs">{subItem.nombre_archivo}</span>
+                                <span className="text-[10px] font-bold text-slate-500 bg-slate-200 dark:bg-slate-700 px-2 py-0.2 rounded">
+                                  Versión {subItem.version || 1}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded-full font-medium text-[11px] ${getEstadoColor(subItem.resultado_ia.estado)}`}>
+                                {subItem.resultado_ia.estado}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded border font-semibold text-[11px] ${getRiesgoColor(subItem.resultado_ia.puntuacion_riesgo)}`}>
+                                Riesgo: {subItem.resultado_ia.puntuacion_riesgo}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center whitespace-nowrap">
+                              <button
+                                onClick={() => setInformeSeleccionado(subItem)}
+                                className="font-medium text-xs hover:underline flex items-center justify-center gap-1 mx-auto text-slate-600 dark:text-slate-400 whitespace-nowrap"
+                              >
+                                <Eye size={14} className="shrink-0" /> Ver Informe v{subItem.version || 1}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
+
 
               {historial.length === 0 && (
                 <div className="p-8 text-center text-slate-500 dark:text-slate-400">
@@ -119,7 +283,7 @@ function Historial() {
       {informeSeleccionado && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-            
+
             {/* Cabecera del Modal */}
             <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start">
               <div className="flex items-center gap-4">
@@ -131,7 +295,7 @@ function Historial() {
                   <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{informeSeleccionado.nombre_archivo}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setInformeSeleccionado(null)}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors flex items-center gap-1"
               >
@@ -141,7 +305,7 @@ function Historial() {
 
             {/* Cuerpo del Modal con scroll */}
             <div className="p-6 overflow-y-auto">
-              
+
               {/* Badges superiores */}
               <div className="flex gap-3 mb-6">
                 <span className={`px-4 py-1.5 rounded-full font-bold text-sm ${getEstadoColor(informeSeleccionado.resultado_ia.estado)}`}>
@@ -162,14 +326,14 @@ function Historial() {
 
               {/* Evaluación de Cláusulas */}
               <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Evaluación de Cláusulas Clave</h4>
-              
+
               <div className="flex flex-col gap-5">
                 {(informeSeleccionado.resultado_ia.clausulas_detectadas || []).map((clausula, index) => {
                   const cumple = clausula.estado?.toLowerCase().includes('cumple');
-                  
+
                   return (
                     <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800/50">
-                      
+
                       {/* Cabecera de la cláusula */}
                       <div className="bg-[#f8fafc] dark:bg-slate-800 p-4 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
                         <span className="font-bold text-slate-800 dark:text-white text-base">
@@ -193,7 +357,7 @@ function Historial() {
                             {clausula.proposito || 'Cláusula esencial en un acuerdo de confidencialidad.'}
                           </p>
                         </div>
-                        
+
                         {/* 2. Observaciones */}
                         <div>
                           <p className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -229,6 +393,94 @@ function Historial() {
           </div>
         </div>
       )}
+
+
+      {/* ========== MODAL: SUBIR NUEVA VERSIÓN ========== */}
+      {itemParaVersion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                  Subir nueva versión
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+                  Se re-analizará y quedará enlazado a:
+                </p>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-200 mt-1 truncate">
+                  {itemParaVersion.nombre_archivo}
+                </p>
+              </div>
+              <button
+                onClick={() => !subiendoV2 && setItemParaVersion(null)}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-4">
+              <label className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors">
+                <Upload className="w-8 h-8 text-slate-400" />
+                <span className="text-sm text-slate-600 dark:text-slate-300 text-center">
+                  {archivoV2
+                    ? archivoV2.name
+                    : 'Haz clic para seleccionar el PDF corregido'}
+                </span>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  disabled={subiendoV2}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setArchivoV2(f);
+                  }}
+                />
+              </label>
+
+              {errorV2 && (
+                <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  {errorV2}
+                </div>
+              )}
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  disabled={subiendoV2}
+                  onClick={() => setItemParaVersion(null)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={!archivoV2 || subiendoV2}
+                  onClick={handleSubirNuevaVersion}
+                  className="px-4 py-2 rounded-lg text-sm font-bold text-white flex items-center gap-2 disabled:opacity-50"
+                  style={{ backgroundColor: 'var(--color-primary)' }}
+                >
+                  {subiendoV2 ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Analizando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={16} />
+                      Analizar y guardar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }

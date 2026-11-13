@@ -499,17 +499,50 @@ class GuardarAnalisisRequest(BaseModel):
     tipo_documento_id: Optional[int] = 1
 
 
+    analisis_padre_id: Optional[int] = None
+
+
 @app.post("/api/historial/guardar")
 def guardar_analisis(
     body: GuardarAnalisisRequest,
     db: Session = Depends(get_db),
     usuario_actual: models.Usuario = Depends(get_current_user)
 ):
+    version = 1
+    padre_id = body.analisis_padre_id
+
+    if padre_id:
+        padre = (
+            db.query(models.AnalisisResultado)
+            .filter(
+                models.AnalisisResultado.id == padre_id,
+                models.AnalisisResultado.usuario_id == usuario_actual.id,
+            )
+            .first()
+        )
+        if not padre:
+            raise HTTPException(status_code=404, detail="El análisis origen no existe.")
+
+        raiz_id = padre.analisis_padre_id or padre.id
+        total_versiones = (
+            db.query(models.AnalisisResultado)
+            .filter(
+                models.AnalisisResultado.usuario_id == usuario_actual.id,
+                (models.AnalisisResultado.id == raiz_id)
+                | (models.AnalisisResultado.analisis_padre_id == raiz_id),
+            )
+            .count()
+        )
+        version = total_versiones + 1
+        padre_id = raiz_id
+
     nuevo_analisis = models.AnalisisResultado(
         usuario_id=usuario_actual.id,
         tipo_documento_id=body.tipo_documento_id or 1,
         nombre_archivo=body.nombre_archivo,
         resultado_ia=body.resultado_ia,
+        version=version,
+        analisis_padre_id=padre_id,
     )
     db.add(nuevo_analisis)
     db.commit()
@@ -518,7 +551,9 @@ def guardar_analisis(
     return {
         "mensaje": "Análisis guardado exitosamente en el historial",
         "analisis_id": nuevo_analisis.id,
+        "version": nuevo_analisis.version,
     }
+
 
 # INFORME DETALLADO
 

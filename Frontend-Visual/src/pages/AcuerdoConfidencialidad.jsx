@@ -192,7 +192,7 @@ function AcuerdoConfidencialidad() {
       {/* ========== CABECERA ========== */}
       <header className="p-10 pb-6">
         <h2 className="text-4xl font-black text-center text-slate-900 dark:text-white uppercase tracking-tight">
-          Analizar Documento Legal
+          Analizar Documento
         </h2>
         <p className="text-center text-xl text-slate-600 dark:text-slate-300 mt-2 font-medium">
           Selecciona el tipo de documento y súbelo para validar
@@ -315,7 +315,7 @@ function AcuerdoConfidencialidad() {
                   <div className="flex items-center gap-3">
                     <ShieldCheck className="text-blue-600" size={32} />
                     <div>
-                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Resultado Legal</h3>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Resultado del análisis</h3>
                     </div>
                   </div>
                   <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${colorRiesgo(resultado.puntuacion_riesgo)}`}>
@@ -324,7 +324,7 @@ function AcuerdoConfidencialidad() {
                 </div>
 
                 <div>
-                  <h4 className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-3">Evaluación rápida:</h4>
+                  <h4 className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-3">Evaluación realizada por IA:</h4>
                   <div className="grid grid-cols-1 gap-3">
                     {(resultado.clausulas_detectadas || []).map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
@@ -343,7 +343,7 @@ function AcuerdoConfidencialidad() {
                 {verificacion.length > 0 && (
                   <div>
                     <h4 className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-3">
-                      Verificación por reglas (búsqueda en el texto):
+                      Verificación por el sistema (búsqueda en el texto):
                     </h4>
                     <div className="grid grid-cols-1 gap-3">
                       {verificacion.map((v, idx) => (

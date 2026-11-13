@@ -74,6 +74,13 @@ class AnalisisResultado(Base):
     )  
     fecha_analisis = Column(DateTime(timezone=True), server_default=func.now())
 
+
+    version = Column(Integer, default=1, nullable=False)
+    analisis_padre_id = Column(
+        Integer, ForeignKey("analisis_resultados.id", ondelete="SET NULL"), nullable=True
+    )
+
+
     usuario = relationship("Usuario", back_populates="analisis")
     tipo_documento = relationship("TipoDocumento", back_populates="analisis")
 
