@@ -44,7 +44,9 @@ CREATE TABLE IF NOT EXISTS analisis_resultados (
     tipo_documento_id INTEGER REFERENCES tipos_documento(id),
     nombre_archivo VARCHAR(255) NOT NULL,
     resultado_ia JSONB NOT NULL,
-    fecha_analisis TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    fecha_analisis TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    version INTEGER DEFAULT 1 NOT NULL,
+    analisis_padre_id INTEGER REFERENCES analisis_resultados(id) ON DELETE SET NULL
 );
 
 -- 5. Tabla: tokens_recuperacion
