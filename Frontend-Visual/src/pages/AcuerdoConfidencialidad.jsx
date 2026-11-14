@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   FileText, Upload, Search, CheckCircle, AlertTriangle, ShieldCheck,
-  Loader2, Sparkles, FileSearch, Info, Eye, Lightbulb,
+  Loader2, Sparkles, FileSearch, Info, Eye, Lightbulb, X
 } from 'lucide-react';
 import api from '../api';
 
@@ -201,7 +201,7 @@ function AcuerdoConfidencialidad() {
       </header>
 
       <main className="p-10 pt-0 max-w-7xl mx-auto w-full">
-        <div className={`grid gap-8 ${mostrarInforme && resultado ? 'lg:grid-cols-2' : 'grid-cols-1'}`}>
+        <div className="flex flex-col gap-8">
           
           {/* ========== COLUMNA IZQUIERDA ========== */}
           <div className="flex flex-col gap-6">
@@ -371,8 +371,8 @@ function AcuerdoConfidencialidad() {
 
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                  <button onClick={() => setMostrarInforme((v) => !v)} className="flex-1 px-6 py-3.5 text-base text-white font-semibold rounded-lg shadow-md flex items-center justify-center gap-2 hover:opacity-90" style={{ backgroundColor: 'var(--color-primary)' }}>
-                    <FileSearch size={20} /> {mostrarInforme ? 'Ocultar informe detallado' : 'Ver informe detallado'}
+                  <button onClick={() => setMostrarInforme(true)} className="flex-1 px-6 py-3.5 text-base text-white font-semibold rounded-lg shadow-md flex items-center justify-center gap-2 hover:opacity-90 transition-all" style={{ backgroundColor: 'var(--color-primary)' }}>
+                    <FileSearch size={20} /> Ver informe detallado
                   </button>
                   <button onClick={aceptarValidacion} disabled={cargando} className="flex-1 px-6 py-3.5 text-base text-white font-semibold rounded-lg shadow-md flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 transition-all">
                     <CheckCircle size={20} /> Aceptar validación
@@ -382,46 +382,106 @@ function AcuerdoConfidencialidad() {
             )}
           </div>
 
-          {/* ========== COLUMNA DERECHA: INFORME ========== */}
+
           {mostrarInforme && resultado && !cargando && (
-            <section className="rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col lg:sticky lg:top-6 max-h-[calc(100vh-6rem)]" style={{ backgroundColor: 'var(--color-card-bg)' }}>
-              <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FileSearch className="text-blue-600" size={26} />
-                  <div>
-                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Informe detallado</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{archivo?.name}</p>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+
+                <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-start">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
+                      <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Informe detallado</h3>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{archivo?.name}</p>
+                    </div>
                   </div>
-                </div>
-                <button onClick={() => setMostrarInforme(false)} className="px-4 py-2 text-sm font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Ocultar</button>
-              </div>
-
-              <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-6">
-                <div>
-                  <h4 className="font-bold text-lg mb-2">Resumen ejecutivo</h4>
-                  <p className="text-base bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800/40">{resultado.resumen_ejecutivo}</p>
+                  <button
+                    onClick={() => setMostrarInforme(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    <X size={18} /> Cerrar
+                  </button>
                 </div>
 
-                <div>
-                  <h4 className="font-bold text-lg mb-4">Evaluación de Cláusulas</h4>
+                <div className="p-6 overflow-y-auto">
+
+                  <div className="flex gap-3 mb-6">
+                    <span className={`px-4 py-1.5 rounded-full font-bold text-sm ${resultado.estado?.includes('Aprobado') ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'}`}>
+                      {resultado.estado}
+                    </span>
+                    <span className={`px-4 py-1.5 rounded-full font-bold text-sm bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300`}>
+                      Riesgo: {resultado.puntuacion_riesgo}
+                    </span>
+                  </div>
+
+                  <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-3">Resumen ejecutivo</h4>
+                  <div className="bg-[#f0f4f8] dark:bg-slate-800 border border-blue-100 dark:border-slate-700 p-5 rounded-xl mb-8">
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                      {resultado.resumen_ejecutivo}
+                    </p>
+                  </div>
+
+                  <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Evaluación de Cláusulas Clave</h4>
+
                   <div className="flex flex-col gap-5">
-                    {(resultado.clausulas_detectadas || []).map((c, i) => (
-                      <article key={i} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40">
-                        <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                          <h5 className="font-bold text-base">{c.nombre}</h5>
-                          {c.estado === 'Cumple' ? <span className="flex items-center gap-1 text-green-600"><CheckCircle size={18}/> Cumple</span> : <span className="flex items-center gap-1 text-amber-600"><AlertTriangle size={18}/> Falta</span>}
+                    {(resultado.clausulas_detectadas || []).map((clausula, index) => {
+                      const cumple = clausula.estado?.toLowerCase().includes('cumple');
+
+                      return (
+                        <div key={index} className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800/50">
+
+                          <div className="bg-[#f8fafc] dark:bg-slate-800 p-4 flex justify-between items-center border-b border-slate-200 dark:border-slate-700">
+                            <span className="font-bold text-slate-800 dark:text-white text-base">
+                              {clausula.nombre}
+                            </span>
+                            <div className={`flex items-center gap-1.5 font-bold text-sm ${cumple ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                              {cumple ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+                              {cumple ? 'Cumple' : 'Falta'}
+                            </div>
+                          </div>
+
+                          <div className="p-5 flex flex-col gap-4">
+                            <div>
+                              <p className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                <Info size={18} className="text-blue-500 shrink-0" />
+                                ¿Para qué sirve?
+                              </p>
+                              <p className="text-slate-600 dark:text-slate-400 text-sm pl-7 leading-relaxed">
+                                {clausula.proposito || 'Cláusula esencial en un documento jurídico.'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                <Eye size={18} className="text-slate-500 shrink-0" />
+                                Observaciones detectadas
+                              </p>
+                              <p className="text-slate-600 dark:text-slate-400 text-sm pl-7 leading-relaxed">
+                                {clausula.observaciones}
+                              </p>
+                            </div>
+
+                            <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 mt-1">
+                              <p className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                <Lightbulb size={18} className="text-amber-500 shrink-0" />
+                                Recomendación
+                              </p>
+                              <p className="text-slate-600 dark:text-slate-400 text-sm pl-7 italic leading-relaxed">
+                                {clausula.recomendacion || 'Ninguna observación.'}
+                              </p>
+                            </div>
+
+                          </div>
                         </div>
-                        <div className="p-5 flex flex-col gap-4">
-                          <div><p className="font-bold mb-1"><Info className="inline text-blue-500 mr-2" size={18}/>¿Para qué sirve?</p><p className="pl-7 text-slate-600 dark:text-slate-400">{c.proposito}</p></div>
-                          <div><p className="font-bold mb-1"><Eye className="inline text-slate-500 mr-2" size={18}/>Observaciones</p><p className="pl-7 text-slate-600 dark:text-slate-400">{c.observaciones}</p></div>
-                          <div className="p-4 rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700"><p className="font-bold mb-1"><Lightbulb className="inline text-amber-500 mr-2" size={18}/>Recomendación</p><p className="pl-7 italic text-slate-600 dark:text-slate-400">{c.recomendacion}</p></div>
-                        </div>
-                      </article>
-                    ))}
+                      );
+                    })}
                   </div>
+
                 </div>
               </div>
-            </section>
+            </div>
           )}
         </div>
       </main>
