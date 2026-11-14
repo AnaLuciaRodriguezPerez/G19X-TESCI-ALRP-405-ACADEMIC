@@ -149,14 +149,13 @@ function Historial() {
                 </thead>
                 <tbody className="text-sm divide-y divide-slate-100 dark:divide-slate-800">
                   {gruposDocumentos.map((grupo) => {
-                    const ultimaVersion = grupo[0]; // La versión más nueva
+                    const ultimaVersion = grupo[0]; 
                     const tieneVariasVersiones = grupo.length > 1;
                     const raizId = ultimaVersion.analisis_padre_id || ultimaVersion.id;
                     const estaAbierto = !!desplegados[raizId];
 
                     return (
                       <React.Fragment key={raizId}>
-                        {/* FILA PRINCIPAL (Muestra la versión más reciente) */}
                         <tr className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                           <td className="p-4 text-center">
                             {tieneVariasVersiones && (
@@ -271,7 +270,7 @@ function Historial() {
 
               {historial.length === 0 && (
                 <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                  Aún no has analizado ningún documento. Ve a "Acuerdo de confidencialidad" para validar tu primer PDF.
+                  Aún no has analizado ningún documento. Ve a "Analizar" para validar tu primer PDF.
                 </div>
               )}
             </div>
@@ -345,9 +344,8 @@ function Historial() {
                         </div>
                       </div>
 
-                      {/* Detalles de la cláusula */}
                       <div className="p-5 flex flex-col gap-4">
-                        {/* 1. Propósito */}
+                 
                         <div>
                           <p className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
                             <Info size={18} className="text-blue-500 shrink-0" />
@@ -358,7 +356,6 @@ function Historial() {
                           </p>
                         </div>
 
-                        {/* 2. Observaciones */}
                         <div>
                           <p className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
                             <Eye size={18} className="text-slate-500 shrink-0" />
@@ -369,7 +366,6 @@ function Historial() {
                           </p>
                         </div>
 
-                        {/* 3. RECOMENDACIÓN DE LA IA (SOLO SE MUESTRA SI LA CLÁUSULA FALTA) */}
                         {!cumple && (
                           <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 mt-1">
                             <p className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
